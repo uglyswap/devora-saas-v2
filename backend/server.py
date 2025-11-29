@@ -12,6 +12,7 @@ import json
 import base64
 from github import Github, GithubException
 from agents.orchestrator import OrchestratorAgent
+from agents.orchestrator_v2 import OrchestratorV2
 from agents.context_compressor import compress_context_if_needed
 from config import settings
 from routes_auth import router as auth_router
@@ -78,6 +79,7 @@ class Project(BaseModel):
     conversation_id: Optional[str] = None
     github_repo_url: Optional[str] = None
     vercel_url: Optional[str] = None
+    project_type: Optional[str] = None  # saas, ecommerce, blog, etc.
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -106,6 +108,16 @@ class AgenticRequest(BaseModel):
     api_key: str
     current_files: List[ProjectFile] = []
     conversation_history: List[Dict[str, str]] = []  # BUG 4 FIX: Accept conversation
+    project_id: Optional[str] = None
+
+class FullStackRequest(BaseModel):
+    """Request for full-stack project generation"""
+    message: str
+    model: str
+    api_key: str
+    current_files: List[ProjectFile] = []
+    conversation_history: List[Dict[str, str]] = []
+    project_type: Optional[str] = None  # saas, ecommerce, blog, dashboard, api
     project_id: Optional[str] = None
 
 class ExportGithubRequest(BaseModel):
@@ -528,7 +540,7 @@ async def deploy_to_vercel(request: DeployVercelRequest):
         logging.error(f"Vercel deployment error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur lors du déploiement: {str(e)}")
 
-# Agentic Code Generation
+# Agentic Code Generation (Original - HTML/CSS/JS)
 @api_router.post("/generate/agentic")
 async def generate_with_agentic_system(request: AgenticRequest):
     """Generate code using the agentic system with context compression"""
@@ -584,10 +596,104 @@ async def generate_with_agentic_system(request: AgenticRequest):
         logging.error(f"Agentic generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# Full-Stack Project Generation (NEW - Next.js/Supabase/Stripe)
+@api_router.post("/generate/fullstack")
+async def generate_fullstack_project(request: FullStackRequest):
+    """Generate full-stack Next.js project using OrchestratorV2.
+    
+    This endpoint uses specialized agents to generate:
+    - Frontend: Next.js 14+ App Router, React, Tailwind, shadcn/ui
+    - Backend: API Routes, Server Actions, Auth middleware
+    - Database: Supabase schemas, RLS policies, migrations
+    
+    Supported project_type values:
+    - saas: SaaS application with auth, billing, dashboard
+    - ecommerce: Online store with products, cart, checkout
+    - blog: Blog/CMS with MDX support
+    - dashboard: Admin dashboard with analytics
+    - api: REST/GraphQL API service
+    - custom: Auto-detect from description
+    """
+    try:
+        # Prepare files
+        files_as_dicts = [f.model_dump() for f in request.current_files]
+        conversation = request.conversation_history.copy()
+        
+        # Create OrchestratorV2 for full-stack generation
+        orchestrator = OrchestratorV2(
+            api_key=request.api_key,
+            model=request.model
+        )
+        
+        # Store progress events for real-time feedback
+        progress_events = []
+        
+        async def progress_callback(event: str, data: dict):
+            progress_events.append({
+                "event": event,
+                "data": data,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+        
+        orchestrator.set_progress_callback(progress_callback)
+        
+        # Execute full-stack generation workflow
+        result = await orchestrator.execute(
+            user_request=request.message,
+            current_files=files_as_dicts,
+            conversation_history=conversation,
+            project_type=request.project_type
+        )
+        
+        # Return result with progress events and metadata
+        return {
+            **result,
+            "progress_events": progress_events,
+            "generation_mode": "fullstack",
+            "stack": {
+                "frontend": ["next.js", "react", "tailwind", "shadcn/ui"],
+                "backend": ["api-routes", "server-actions"],
+                "database": ["supabase", "postgresql"]
+            }
+        }
+        
+    except Exception as e:
+        logging.error(f"Full-stack generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# List available templates
+@api_router.get("/templates")
+async def list_templates():
+    """List available project templates"""
+    from templates import TEMPLATES
+    
+    templates_list = []
+    for key, template in TEMPLATES.items():
+        templates_list.append({
+            "key": key,
+            "name": template.get("name"),
+            "description": template.get("description"),
+            "stack": template.get("stack", {}),
+            "features": [f["name"] for f in template.get("features", [])]
+        })
+    
+    return {"templates": templates_list}
+
 # Health check
 @api_router.get("/")
 async def root():
-    return {"message": "Devora API", "status": "running", "version": "2.1.0"}
+    return {
+        "message": "Devora API", 
+        "status": "running", 
+        "version": "3.0.0",
+        "features": [
+            "openrouter",
+            "agentic",
+            "fullstack",
+            "github-export",
+            "vercel-deploy"
+        ]
+    }
 
 # Include routers
 app.include_router(auth_router, prefix="/api")
