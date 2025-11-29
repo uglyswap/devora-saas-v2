@@ -10,8 +10,9 @@ from datetime import datetime, timezone
 import httpx
 import json
 import base64
-from github import Github
+from github import Github, GithubException
 from agents.orchestrator import OrchestratorAgent
+from agents.context_compressor import compress_context_if_needed
 from config import settings
 from routes_auth import router as auth_router
 from routes_billing import router as billing_router
@@ -49,6 +50,11 @@ class Message(BaseModel):
     content: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class ConversationMessage(BaseModel):
+    """Simplified message for conversation history"""
+    role: str
+    content: str
+
 class Conversation(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -68,6 +74,7 @@ class Project(BaseModel):
     name: str
     description: Optional[str] = None
     files: List[ProjectFile] = []
+    conversation_history: List[ConversationMessage] = []  # BUG 4 FIX: Store conversation
     conversation_id: Optional[str] = None
     github_repo_url: Optional[str] = None
     vercel_url: Optional[str] = None
@@ -98,6 +105,7 @@ class AgenticRequest(BaseModel):
     model: str
     api_key: str
     current_files: List[ProjectFile] = []
+    conversation_history: List[Dict[str, str]] = []  # BUG 4 FIX: Accept conversation
     project_id: Optional[str] = None
 
 class ExportGithubRequest(BaseModel):
@@ -285,7 +293,7 @@ async def get_openrouter_models(api_key: str):
 # Code Generation with OpenRouter
 @api_router.post("/generate/openrouter")
 async def generate_with_openrouter(request: OpenRouterRequest):
-    """Generate code using OpenRouter API"""
+    """Generate code using OpenRouter API with context compression"""
     try:
         system_prompt = """You are an expert full-stack developer. Generate clean, production-ready code based on user requirements.
         
@@ -314,12 +322,23 @@ When generating code:
         ```
         """
         
+        # Apply context compression if needed
+        conversation = request.conversation_history.copy()
+        compressed_messages, _, compression_stats = compress_context_if_needed(
+            conversation,
+            system_prompt=system_prompt,
+            keep_recent_messages=8
+        )
+        
+        if compression_stats.get('compressed'):
+            logging.info(f"Context compressed: saved {compression_stats['total']['tokens_saved']} tokens")
+        
         messages = [
             {"role": "system", "content": system_prompt}
         ]
         
-        # Add conversation history
-        messages.extend(request.conversation_history)
+        # Add compressed conversation history
+        messages.extend(compressed_messages)
         
         # Add current message
         messages.append({"role": "user", "content": request.message})
@@ -344,7 +363,8 @@ When generating code:
                 result = response.json()
                 return {
                     "response": result["choices"][0]["message"]["content"],
-                    "model": request.model
+                    "model": request.model,
+                    "context_compressed": compression_stats.get('compressed', False)
                 }
             else:
                 raise HTTPException(status_code=response.status_code, detail=response.text)
@@ -363,6 +383,11 @@ async def export_to_github(request: ExportGithubRequest):
         if not project.files:
             raise HTTPException(status_code=400, detail="Project has no files to export")
         
+        # Validate repo name
+        repo_name = request.repo_name.strip()
+        if not repo_name or '/' in repo_name or ' ' in repo_name:
+            raise HTTPException(status_code=400, detail="Invalid repository name")
+        
         # Create GitHub client
         g = Github(request.github_token)
         user = g.get_user()
@@ -370,17 +395,32 @@ async def export_to_github(request: ExportGithubRequest):
         # Create repository
         try:
             repo = user.create_repo(
-                name=request.repo_name,
-                description=project.description or "Created with Devora",
+                name=repo_name,
+                description=project.description or f"Created with Devora - {project.name}",
                 private=request.private,
-                auto_init=True
+                auto_init=False  # Don't init to avoid merge conflicts
             )
-        except Exception as e:
-            if "already exists" in str(e).lower():
-                raise HTTPException(status_code=400, detail=f"Repository '{request.repo_name}' already exists")
-            raise
+        except GithubException as e:
+            if "already exists" in str(e).lower() or e.status == 422:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Le repository '{repo_name}' existe déjà. Choisissez un autre nom."
+                )
+            raise HTTPException(status_code=400, detail=f"Erreur GitHub: {str(e)}")
         
-        # Add files to repository
+        # Add README first to initialize repo
+        readme_content = f"# {project.name}\n\n{project.description or 'Created with Devora'}\n"
+        try:
+            repo.create_file(
+                path="README.md",
+                message="Initial commit - Created with Devora",
+                content=readme_content
+            )
+        except GithubException as e:
+            logging.warning(f"README creation warning: {str(e)}")
+        
+        # Add project files
+        files_created = 0
         for file in project.files:
             try:
                 repo.create_file(
@@ -388,7 +428,8 @@ async def export_to_github(request: ExportGithubRequest):
                     message=f"Add {file.name}",
                     content=file.content
                 )
-            except Exception as e:
+                files_created += 1
+            except GithubException as e:
                 logging.error(f"Error creating file {file.name}: {str(e)}")
         
         # Update project with GitHub URL
@@ -398,14 +439,15 @@ async def export_to_github(request: ExportGithubRequest):
         return {
             "success": True,
             "repo_url": repo.html_url,
-            "message": f"Project exported to GitHub successfully"
+            "files_created": files_created,
+            "message": f"Projet exporté sur GitHub avec {files_created} fichier(s)"
         }
         
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"GitHub export error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'export: {str(e)}")
 
 # Vercel Deploy
 @api_router.post("/vercel/deploy")
@@ -417,6 +459,10 @@ async def deploy_to_vercel(request: DeployVercelRequest):
         
         if not project.files:
             raise HTTPException(status_code=400, detail="Project has no files to deploy")
+        
+        # Validate project name
+        project_name = request.project_name.strip().lower()
+        project_name = ''.join(c if c.isalnum() or c == '-' else '-' for c in project_name)
         
         # Prepare files for Vercel
         files = []
@@ -435,11 +481,12 @@ async def deploy_to_vercel(request: DeployVercelRequest):
                     "Content-Type": "application/json"
                 },
                 json={
-                    "name": request.project_name,
+                    "name": project_name,
                     "files": files,
                     "projectSettings": {
                         "framework": None
-                    }
+                    },
+                    "target": "production"
                 },
                 timeout=120.0
             )
@@ -455,22 +502,51 @@ async def deploy_to_vercel(request: DeployVercelRequest):
                 return {
                     "success": True,
                     "url": deployment_url,
-                    "message": "Project deployed to Vercel successfully"
+                    "deployment_id": result.get('id'),
+                    "message": "Projet déployé sur Vercel avec succès"
                 }
+            elif response.status_code == 401:
+                raise HTTPException(
+                    status_code=401, 
+                    detail="Token Vercel invalide ou expiré"
+                )
+            elif response.status_code == 403:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Permissions insuffisantes. Vérifiez les scopes de votre token."
+                )
             else:
-                raise HTTPException(status_code=response.status_code, detail=response.text)
+                error_detail = response.json() if response.text else {}
+                raise HTTPException(
+                    status_code=response.status_code, 
+                    detail=error_detail.get('error', {}).get('message', response.text)
+                )
                 
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Vercel deployment error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erreur lors du déploiement: {str(e)}")
 
 # Agentic Code Generation
 @api_router.post("/generate/agentic")
 async def generate_with_agentic_system(request: AgenticRequest):
-    """Generate code using the agentic system"""
+    """Generate code using the agentic system with context compression"""
     try:
+        # Apply context compression to files if needed
+        files_as_dicts = [f.model_dump() for f in request.current_files]
+        conversation = request.conversation_history.copy()
+        
+        compressed_messages, compressed_files, compression_stats = compress_context_if_needed(
+            conversation,
+            files=files_as_dicts,
+            keep_recent_messages=6,
+            max_file_tokens=3000
+        )
+        
+        if compression_stats.get('compressed'):
+            logging.info(f"Agentic context compressed: saved {compression_stats['total']['tokens_saved']} tokens")
+        
         # Create orchestrator
         orchestrator = OrchestratorAgent(
             api_key=request.api_key,
@@ -489,16 +565,19 @@ async def generate_with_agentic_system(request: AgenticRequest):
         
         orchestrator.set_progress_callback(progress_callback)
         
-        # Execute agentic workflow
+        # Execute agentic workflow with compressed context
         result = await orchestrator.execute(
             user_request=request.message,
-            current_files=[f.model_dump() for f in request.current_files]
+            current_files=compressed_files,
+            conversation_history=compressed_messages
         )
         
         # Return result with progress events
         return {
             **result,
-            "progress_events": progress_events
+            "progress_events": progress_events,
+            "context_compressed": compression_stats.get('compressed', False),
+            "compression_stats": compression_stats if compression_stats.get('compressed') else None
         }
         
     except Exception as e:
@@ -508,7 +587,7 @@ async def generate_with_agentic_system(request: AgenticRequest):
 # Health check
 @api_router.get("/")
 async def root():
-    return {"message": "Devora API", "status": "running"}
+    return {"message": "Devora API", "status": "running", "version": "2.1.0"}
 
 # Include routers
 app.include_router(auth_router, prefix="/api")

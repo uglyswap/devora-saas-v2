@@ -2,14 +2,14 @@ from .planner import PlannerAgent
 from .coder import CoderAgent
 from .tester import TesterAgent
 from .reviewer import ReviewerAgent
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional
 import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 
 class OrchestratorAgent:
-    """Main orchestrator that coordinates all agents"""
+    """Main orchestrator that coordinates all agents with context management"""
     
     def __init__(self, api_key: str, model: str = "openai/gpt-4o"):
         self.api_key = api_key
@@ -34,23 +34,37 @@ class OrchestratorAgent:
             await self.progress_callback(event, data)
         logger.info(f"[Orchestrator] {event}: {data.get('message', '')}")
     
-    async def execute(self, user_request: str, current_files: List[Dict] = None) -> Dict[str, Any]:
-        """Execute the agentic workflow"""
+    async def execute(
+        self, 
+        user_request: str, 
+        current_files: List[Dict] = None,
+        conversation_history: List[Dict[str, str]] = None
+    ) -> Dict[str, Any]:
+        """Execute the agentic workflow with conversation context"""
         if current_files is None:
             current_files = []
+        if conversation_history is None:
+            conversation_history = []
         
         logger.info(f"[Orchestrator] Starting agentic workflow for request: {user_request[:100]}...")
+        logger.info(f"[Orchestrator] Context: {len(current_files)} files, {len(conversation_history)} messages")
         
         iteration = 0
         final_files = []
         
         try:
-            # Step 1: Planning
+            # Step 1: Planning with conversation context
             await self.emit_progress("planning", {"message": "Analyzing requirements and creating plan..."})
+            
+            # Build context summary from conversation
+            context_summary = self._build_context_summary(conversation_history)
             
             plan_result = await self.planner.execute({
                 "request": user_request,
-                "context": {"current_files": [f['name'] for f in current_files]}
+                "context": {
+                    "current_files": [f['name'] for f in current_files],
+                    "conversation_context": context_summary
+                }
             })
             
             if not plan_result["success"]:
@@ -71,13 +85,14 @@ class OrchestratorAgent:
                     "iteration": iteration
                 })
                 
-                # Step 2: Code Generation
+                # Step 2: Code Generation with context
                 await self.emit_progress("coding", {"message": "Generating code..."})
                 
                 code_result = await self.coder.execute({
                     "plan": plan,
                     "current_files": current_files,
-                    "iteration": iteration
+                    "iteration": iteration,
+                    "conversation_context": context_summary
                 })
                 
                 if not code_result["success"]:
@@ -157,3 +172,27 @@ class OrchestratorAgent:
                 "success": False,
                 "error": str(e)
             }
+    
+    def _build_context_summary(self, conversation_history: List[Dict[str, str]]) -> str:
+        """Build a summary of conversation context for agents"""
+        if not conversation_history:
+            return "Nouvelle conversation, pas de contexte précédent."
+        
+        summary_parts = []
+        
+        # Get last few exchanges
+        recent = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
+        
+        for msg in recent:
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')[:150]  # First 150 chars
+            
+            if role == 'user':
+                summary_parts.append(f"• Utilisateur: {content}...")
+            elif role == 'assistant' and ('généré' in content.lower() or 'créé' in content.lower()):
+                summary_parts.append(f"• Assistant: Code généré/modifié")
+        
+        if summary_parts:
+            return "Contexte conversation récente:\n" + "\n".join(summary_parts)
+        
+        return "Conversation en cours avec échanges précédents."
