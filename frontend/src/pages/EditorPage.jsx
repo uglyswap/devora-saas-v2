@@ -9,7 +9,7 @@ import {
   ArrowLeft, Send, Save, Download, Github, Globe, 
   Loader2, Code2, Eye, MessageSquare, FileCode,
   Play, Settings, Plus, X, Copy, Check, EyeOff, PanelLeftClose, PanelLeftOpen,
-  Bot, Sparkles, Trash2
+  Bot, Sparkles, Trash2, ExternalLink, Rocket
 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
@@ -42,6 +42,10 @@ const EditorPage = () => {
   // BUG 1 FIX: Key to force stable re-renders of file tabs in SplitPane
   const [fileTabsKey, setFileTabsKey] = useState(0);
   
+  // Preview state for Full-Stack projects
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  
   // Project state with conversation history for BUG 4
   const [project, setProject] = useState({
     name: 'Nouveau Projet',
@@ -72,6 +76,17 @@ const EditorPage = () => {
   
   const chatEndRef = useRef(null);
   const iframeRef = useRef(null);
+
+  // Detect if project is Full-Stack (Next.js/TypeScript)
+  const isFullStackProject = useCallback(() => {
+    const files = project.files || [];
+    const hasTypeScript = files.some(f => f.name.endsWith('.tsx') || f.name.endsWith('.ts'));
+    const hasHtml = files.some(f => f.name.endsWith('.html'));
+    const hasAppRouter = files.some(f => f.name.includes('app/') || f.name.includes('app\\'));
+    
+    // Full-Stack if: has TypeScript files OR has App Router structure, AND no plain HTML
+    return (hasTypeScript || hasAppRouter) && !hasHtml;
+  }, [project.files]);
 
   useEffect(() => {
     if (projectId) {
@@ -113,6 +128,11 @@ const EditorPage = () => {
       // BUG 4 FIX: Restore conversation history from project
       if (loadedProject.conversation_history && loadedProject.conversation_history.length > 0) {
         setChatMessages(loadedProject.conversation_history);
+      }
+      
+      // Restore preview URL if exists
+      if (loadedProject.vercel_url) {
+        setPreviewUrl(loadedProject.vercel_url);
       }
       
       // BUG 1 FIX: Force file tabs to re-render with stable key
@@ -268,6 +288,9 @@ const EditorPage = () => {
             // BUG 1 FIX: Update file tabs key to ensure stable rendering
             setFileTabsKey(prev => prev + 1);
             
+            // Clear preview URL when new files are generated (needs new preview)
+            setPreviewUrl(null);
+            
             toast.success(`${response.data.files.length} fichier(s) généré(s) par le système agentique !`);
           }
         }
@@ -350,13 +373,109 @@ const EditorPage = () => {
       // BUG 1 FIX: Update file tabs key
       setFileTabsKey(prev => prev + 1);
       
+      // Clear preview URL
+      setPreviewUrl(null);
+      
       toast.success(`${newFiles.length} fichier(s) mis à jour`);
     }
   };
 
   const updatePreview = () => {
     if (!iframeRef.current) return;
+    
+    // Check if Full-Stack project
+    if (isFullStackProject()) {
+      // Show informative message for Full-Stack projects
+      const fullStackMessage = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Preview Full-Stack</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, #10b981, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      color: #9ca3af;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .stack {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .badge {
+      background: rgba(255,255,255,0.1);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+    .arrow { margin: 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🚀</div>
+    <h1>Projet Full-Stack Next.js</h1>
+    <p>
+      Ce projet utilise Next.js 14+ avec App Router, TypeScript et des fonctionnalités serveur.
+      L'aperçu instantané n'est pas disponible pour ce type de projet.
+    </p>
+    <div class="stack">
+      <span class="badge">Next.js 14+</span>
+      <span class="badge">TypeScript</span>
+      <span class="badge">Tailwind CSS</span>
+      <span class="badge">Supabase</span>
+    </div>
+    <div class="info">
+      <strong>💡 Pour voir l'aperçu :</strong><br/>
+      Cliquez sur le bouton <strong>"Preview Vercel"</strong> ci-dessus<br/>
+      <span class="arrow">→</span> Déploiement en ~30-60 secondes
+    </div>
+  </div>
+</body>
+</html>
+      `;
+      iframeRef.current.srcdoc = fullStackMessage;
+      return;
+    }
 
+    // Standard preview for HTML/CSS/JS projects
     const htmlFile = project.files.find(f => f.name.endsWith('.html'));
     const cssFile = project.files.find(f => f.name.endsWith('.css'));
     const jsFile = project.files.find(f => f.name.endsWith('.js'));
@@ -375,6 +494,47 @@ const EditorPage = () => {
 
     // Use srcdoc to avoid CORS issues
     iframeRef.current.srcdoc = html;
+  };
+
+  // Generate Vercel Preview for Full-Stack projects
+  const generateVercelPreview = async () => {
+    if (!vercelToken) {
+      toast.error('Veuillez configurer votre token Vercel dans les paramètres');
+      navigate('/settings');
+      return;
+    }
+
+    // Save project first if needed
+    if (!projectId) {
+      toast.error('Veuillez d\'abord sauvegarder le projet');
+      await saveProject();
+      return;
+    }
+
+    setPreviewLoading(true);
+    
+    try {
+      const previewName = `${project.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-preview-${Date.now()}`;
+      
+      const response = await axios.post(`${API}/vercel/deploy`, {
+        project_id: projectId,
+        vercel_token: vercelToken,
+        project_name: previewName
+      });
+
+      if (response.data.success) {
+        setPreviewUrl(response.data.url);
+        toast.success('Preview déployé sur Vercel !');
+        
+        // Update project with preview URL
+        setProject(prev => ({ ...prev, vercel_url: response.data.url }));
+      }
+    } catch (error) {
+      console.error('Error creating Vercel preview:', error);
+      toast.error(error.response?.data?.detail || 'Erreur lors du déploiement preview');
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   const exportToGithub = async () => {
@@ -443,8 +603,12 @@ const EditorPage = () => {
       'html': 'html',
       'css': 'css',
       'js': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescriptreact',
+      'jsx': 'javascriptreact',
       'json': 'json',
-      'md': 'markdown'
+      'md': 'markdown',
+      'sql': 'sql'
     };
     
     const newFile = {
@@ -528,6 +692,101 @@ const EditorPage = () => {
     }
   };
 
+  // Render preview panel based on project type
+  const renderPreviewPanel = () => {
+    const isFullStack = isFullStackProject();
+    
+    return (
+      <div className="h-full flex flex-col bg-white">
+        <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-blue-500" />
+            <span className="text-sm font-medium text-gray-700">
+              {isFullStack ? 'Aperçu Full-Stack' : 'Aperçu'}
+            </span>
+            {isFullStack && (
+              <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+                Next.js
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Show Vercel Preview button for Full-Stack projects */}
+            {isFullStack && (
+              <>
+                {previewUrl ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(previewUrl, '_blank')}
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                    title="Ouvrir le preview"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Voir Preview
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={generateVercelPreview}
+                    disabled={previewLoading || !projectId}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    title={!projectId ? 'Sauvegardez d\'abord le projet' : 'Déployer un preview sur Vercel'}
+                  >
+                    {previewLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    ) : (
+                      <Rocket className="w-4 h-4 mr-1" />
+                    )}
+                    Preview Vercel
+                  </Button>
+                )}
+              </>
+            )}
+            
+            {/* Refresh button for simple projects */}
+            {!isFullStack && (
+              <Button
+                data-testid="refresh-preview-button"
+                variant="ghost"
+                size="sm"
+                onClick={updatePreview}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                <Play className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {/* Preview content */}
+        <div className="flex-1 overflow-hidden relative">
+          {/* Show iframe for simple projects OR Full-Stack info message */}
+          <iframe
+            ref={iframeRef}
+            data-testid="preview-iframe"
+            title="Preview"
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-modals"
+          />
+          
+          {/* Overlay with Vercel preview iframe for Full-Stack when URL exists */}
+          {isFullStack && previewUrl && (
+            <div className="absolute inset-0 bg-white">
+              <iframe
+                src={previewUrl}
+                title="Vercel Preview"
+                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="h-screen flex flex-col bg-[#0a0a0b]">
       {/* Header */}
@@ -549,6 +808,11 @@ const EditorPage = () => {
               onChange={(e) => setProject({ ...project, name: e.target.value })}
               className="bg-transparent border-none text-lg font-semibold focus-visible:ring-0 w-64"
             />
+            {isFullStackProject() && (
+              <span className="text-xs bg-gradient-to-r from-emerald-500 to-blue-500 text-white px-2 py-1 rounded-full">
+                Full-Stack
+              </span>
+            )}
           </div>
           
           <div className="flex items-center gap-2">
@@ -956,36 +1220,11 @@ const EditorPage = () => {
             </div>
 
               {/* Preview */}
-              <div className="h-full flex flex-col bg-white">
-              <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-medium text-gray-700">Aperçu</span>
-                </div>
-                <Button
-                  data-testid="refresh-preview-button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={updatePreview}
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  <Play className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <iframe
-                  ref={iframeRef}
-                  data-testid="preview-iframe"
-                  title="Preview"
-                  className="w-full h-full border-0"
-                  sandbox="allow-scripts allow-modals"
-                />
-              </div>
-            </div>
+              {renderPreviewPanel()}
               </SplitPane>
             ) : (
               /* Preview seul quand l'éditeur est masqué */
-              <div className="h-full flex flex-col bg-white">
+              <div className="h-full flex flex-col">
                 <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Eye className="w-4 h-4 text-blue-500" />
@@ -1002,26 +1241,9 @@ const EditorPage = () => {
                     >
                       <PanelLeftOpen className="w-4 h-4" />
                     </Button>
-                    <Button
-                      data-testid="refresh-preview-button-fullscreen"
-                      variant="ghost"
-                      size="sm"
-                      onClick={updatePreview}
-                      className="text-gray-600 hover:text-gray-900"
-                    >
-                      <Play className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
-                <div className="flex-1 overflow-hidden">
-                  <iframe
-                    ref={iframeRef}
-                    data-testid="preview-iframe-fullscreen"
-                    title="Preview"
-                    className="w-full h-full border-0"
-                    sandbox="allow-scripts allow-modals"
-                  />
-                </div>
+                {renderPreviewPanel()}
               </div>
             )}
           </div>
