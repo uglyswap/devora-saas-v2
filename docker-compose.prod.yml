@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4521:4521"
+    environment:
+      - MONGODB_URI=mongodb://devora:devora2024secure@mongodb:27017/devora?authSource=admin
+      - PORT=4521
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_BACKEND_URL=https://api.devora.fun
+    ports:
+      - "4522:4522"
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=devora
+      - MONGO_INITDB_ROOT_PASSWORD=devora2024secure
+      - MONGO_INITDB_DATABASE=devora
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
