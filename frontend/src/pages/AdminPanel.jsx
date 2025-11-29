@@ -557,10 +557,11 @@ const AdminPanel = () => {
                   
                   <div>
                     <Label className="text-gray-300 mb-2 block">Statut d'abonnement</Label>
+                    {/* BUG 3 FIX: Added text-black class to option elements for readability */}
                     <select
                       value={newUserStatus}
                       onChange={(e) => setNewUserStatus(e.target.value)}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 [&>option]:text-black [&>option]:bg-white"
                     >
                       <option value="trialing">Trialing (Essai)</option>
                       <option value="active">Active (Actif)</option>
@@ -1233,10 +1234,11 @@ const AdminPanel = () => {
 
                 <div>
                   <Label className="text-gray-300 mb-2 block">Nouveau statut</Label>
+                  {/* BUG 3 FIX: Added text-black class to option elements for readability */}
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 [&>option]:text-black [&>option]:bg-white"
                   >
                     <option value="trialing">Trialing (Essai)</option>
                     <option value="active">Active (Actif)</option>

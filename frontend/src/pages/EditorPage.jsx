@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,7 +9,7 @@ import {
   ArrowLeft, Send, Save, Download, Github, Globe, 
   Loader2, Code2, Eye, MessageSquare, FileCode,
   Play, Settings, Plus, X, Copy, Check, EyeOff, PanelLeftClose, PanelLeftOpen,
-  Bot, Sparkles
+  Bot, Sparkles, Trash2
 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
@@ -24,6 +24,7 @@ import {
 } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import SplitPane from 'react-split-pane';
+import JSZip from 'jszip';
 import './EditorPage.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -38,7 +39,10 @@ const EditorPage = () => {
   const [showEditor, setShowEditor] = useState(true);
   const [useAgenticMode, setUseAgenticMode] = useState(true);
   
-  // Project state
+  // BUG 1 FIX: Key to force stable re-renders of file tabs in SplitPane
+  const [fileTabsKey, setFileTabsKey] = useState(0);
+  
+  // Project state with conversation history for BUG 4
   const [project, setProject] = useState({
     name: 'Nouveau Projet',
     description: '',
@@ -46,7 +50,8 @@ const EditorPage = () => {
       { name: 'index.html', content: '<!DOCTYPE html>\n<html>\n<head>\n  <title>Mon App</title>\n  <link rel="stylesheet" href="styles.css">\n</head>\n<body>\n  <h1>Hello World!</h1>\n  <script src="script.js"></script>\n</body>\n</html>', language: 'html' },
       { name: 'styles.css', content: 'body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 20px;\n  background: #f5f5f5;\n}\n\nh1 {\n  color: #333;\n}', language: 'css' },
       { name: 'script.js', content: 'console.log("Hello from JavaScript!");', language: 'javascript' }
-    ]
+    ],
+    conversation_history: [] // BUG 4 FIX: Store conversation with project
   });
   
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
@@ -89,10 +94,29 @@ const EditorPage = () => {
     updatePreview();
   }, [project.files]);
 
+  // BUG 4 FIX: Sync chat messages with project conversation history
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      setProject(prev => ({
+        ...prev,
+        conversation_history: chatMessages
+      }));
+    }
+  }, [chatMessages]);
+
   const loadProject = async () => {
     try {
       const response = await axios.get(`${API}/projects/${projectId}`);
-      setProject(response.data);
+      const loadedProject = response.data;
+      setProject(loadedProject);
+      
+      // BUG 4 FIX: Restore conversation history from project
+      if (loadedProject.conversation_history && loadedProject.conversation_history.length > 0) {
+        setChatMessages(loadedProject.conversation_history);
+      }
+      
+      // BUG 1 FIX: Force file tabs to re-render with stable key
+      setFileTabsKey(prev => prev + 1);
     } catch (error) {
       console.error('Error loading project:', error);
       toast.error('Erreur lors du chargement du projet');
@@ -129,11 +153,17 @@ const EditorPage = () => {
   const saveProject = async () => {
     setLoading(true);
     try {
+      // Include conversation history in saved project
+      const projectToSave = {
+        ...project,
+        conversation_history: chatMessages
+      };
+      
       if (projectId) {
-        await axios.put(`${API}/projects/${projectId}`, project);
+        await axios.put(`${API}/projects/${projectId}`, projectToSave);
         toast.success('Projet sauvegardé');
       } else {
-        const response = await axios.post(`${API}/projects`, project);
+        const response = await axios.post(`${API}/projects`, projectToSave);
         toast.success('Projet créé');
         navigate(`/editor/${response.data.id}`);
       }
@@ -142,6 +172,15 @@ const EditorPage = () => {
       toast.error('Erreur lors de la sauvegarde');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // BUG 4 FIX: Clear conversation function
+  const clearConversation = () => {
+    if (window.confirm('Voulez-vous vraiment effacer l\'historique de conversation ?')) {
+      setChatMessages([]);
+      setProject(prev => ({ ...prev, conversation_history: [] }));
+      toast.success('Conversation effacée');
     }
   };
 
@@ -166,11 +205,13 @@ const EditorPage = () => {
         };
         setChatMessages(prev => [...prev, agenticMessage]);
 
+        // BUG 4 FIX: Include conversation history in request
         const response = await axios.post(`${API}/generate/agentic`, {
           message: inputMessage,
           model: selectedModel,
           api_key: apiKey,
-          current_files: project.files
+          current_files: project.files,
+          conversation_history: chatMessages.slice(-10) // Last 10 messages for context
         });
 
         if (response.data.success) {
@@ -223,6 +264,9 @@ const EditorPage = () => {
               
               return { ...prev, files: updatedFiles };
             });
+            
+            // BUG 1 FIX: Update file tabs key to ensure stable rendering
+            setFileTabsKey(prev => prev + 1);
             
             toast.success(`${response.data.files.length} fichier(s) généré(s) par le système agentique !`);
           }
@@ -302,6 +346,9 @@ const EditorPage = () => {
         
         return { ...prev, files: updatedFiles };
       });
+      
+      // BUG 1 FIX: Update file tabs key
+      setFileTabsKey(prev => prev + 1);
       
       toast.success(`${newFiles.length} fichier(s) mis à jour`);
     }
@@ -412,6 +459,8 @@ const EditorPage = () => {
     }));
     
     setCurrentFileIndex(project.files.length);
+    // BUG 1 FIX: Update file tabs key
+    setFileTabsKey(prev => prev + 1);
   };
 
   const deleteFile = (index) => {
@@ -429,26 +478,43 @@ const EditorPage = () => {
       if (currentFileIndex >= project.files.length - 1) {
         setCurrentFileIndex(Math.max(0, project.files.length - 2));
       }
+      // BUG 1 FIX: Update file tabs key
+      setFileTabsKey(prev => prev + 1);
     }
   };
 
-  const downloadProject = () => {
-    const zip = project.files.map(file => `
-=== ${file.name} ===
-${file.content}
-`).join('\n\n');
-    
-    const blob = new Blob([zip], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${project.name}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast.success('Projet téléchargé');
+  // BUG 2 FIX: Real ZIP download with JSZip instead of concatenated .txt
+  const downloadProject = async () => {
+    try {
+      const zip = new JSZip();
+      
+      // Add each file to the ZIP
+      project.files.forEach(file => {
+        zip.file(file.name, file.content);
+      });
+      
+      // Generate ZIP blob
+      const blob = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 9 }
+      });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/[^a-z0-9]/gi, '_')}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`Projet téléchargé (${project.files.length} fichiers)`);
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      toast.error('Erreur lors de la création du ZIP');
+    }
   };
 
   const copyCode = async () => {
@@ -492,6 +558,7 @@ ${file.content}
               size="sm"
               onClick={downloadProject}
               className="text-gray-400 hover:text-white"
+              title="Télécharger le projet en ZIP"
             >
               <Download className="w-4 h-4" />
             </Button>
@@ -632,10 +699,24 @@ ${file.content}
           {/* Chat Panel */}
           <div className="h-full border-r border-white/5 bg-black/20 flex flex-col">
           <div className="p-4 border-b border-white/5 flex-shrink-0">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-emerald-400" />
-              Assistant IA
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                Assistant IA
+              </h2>
+              {/* BUG 4 FIX: Clear conversation button */}
+              {chatMessages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearConversation}
+                  className="text-gray-400 hover:text-red-400"
+                  title="Effacer la conversation"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
             
             {/* Agentic Mode Toggle */}
             <div className="mt-3 bg-white/5 rounded-lg p-3 border border-white/10">
@@ -778,11 +859,11 @@ ${file.content}
 
         {/* Code Editor & Preview */}
         <div className="h-full flex flex-col">
-          {/* File Tabs */}
-          <div className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0">
+          {/* File Tabs - BUG 1 FIX: Use key to force stable renders */}
+          <div key={`file-tabs-${fileTabsKey}`} className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0">
             {project.files.map((file, idx) => (
               <div
-                key={idx}
+                key={`${file.name}-${idx}`}
                 data-testid={`file-tab-${idx}`}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
                   currentFileIndex === idx
