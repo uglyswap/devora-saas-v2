@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,11 +9,12 @@ import {
   ArrowLeft, Send, Save, Download, Github, Globe, 
   Loader2, Code2, Eye, MessageSquare, FileCode,
   Play, Settings, Plus, X, Copy, Check, EyeOff, PanelLeftClose, PanelLeftOpen,
-  Bot, Sparkles
+  Bot, Sparkles, Archive
 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import JSZip from 'jszip';
 import {
   Dialog,
   DialogContent,
@@ -38,7 +39,7 @@ const EditorPage = () => {
   const [showEditor, setShowEditor] = useState(true);
   const [useAgenticMode, setUseAgenticMode] = useState(true);
   
-  // Project state
+  // Project state with conversation history persistence
   const [project, setProject] = useState({
     name: 'Nouveau Projet',
     description: '',
@@ -46,7 +47,8 @@ const EditorPage = () => {
       { name: 'index.html', content: '<!DOCTYPE html>\n<html>\n<head>\n  <title>Mon App</title>\n  <link rel="stylesheet" href="styles.css">\n</head>\n<body>\n  <h1>Hello World!</h1>\n  <script src="script.js"></script>\n</body>\n</html>', language: 'html' },
       { name: 'styles.css', content: 'body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 20px;\n  background: #f5f5f5;\n}\n\nh1 {\n  color: #333;\n}', language: 'css' },
       { name: 'script.js', content: 'console.log("Hello from JavaScript!");', language: 'javascript' }
-    ]
+    ],
+    conversation_history: [] // BUG 4: Persist conversation with project
   });
   
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
@@ -55,6 +57,9 @@ const EditorPage = () => {
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState('openai/gpt-4o');
   const [availableModels, setAvailableModels] = useState([]);
+  
+  // BUG 1: Stable key for file tabs to prevent disappearing
+  const [fileTabsKey, setFileTabsKey] = useState(0);
   
   // Export dialogs
   const [showGithubDialog, setShowGithubDialog] = useState(false);
@@ -89,10 +94,30 @@ const EditorPage = () => {
     updatePreview();
   }, [project.files]);
 
+  // BUG 4: Sync chat messages with project state for persistence
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      setProject(prev => ({
+        ...prev,
+        conversation_history: chatMessages
+      }));
+    }
+  }, [chatMessages]);
+
   const loadProject = async () => {
     try {
       const response = await axios.get(`${API}/projects/${projectId}`);
-      setProject(response.data);
+      const loadedProject = response.data;
+      setProject(loadedProject);
+      
+      // BUG 4: Restore conversation history from project
+      if (loadedProject.conversation_history && loadedProject.conversation_history.length > 0) {
+        setChatMessages(loadedProject.conversation_history);
+        toast.success('Conversation restaurée');
+      }
+      
+      // BUG 1: Force re-render of file tabs after load
+      setFileTabsKey(prev => prev + 1);
     } catch (error) {
       console.error('Error loading project:', error);
       toast.error('Erreur lors du chargement du projet');
@@ -129,11 +154,17 @@ const EditorPage = () => {
   const saveProject = async () => {
     setLoading(true);
     try {
+      // BUG 4: Include conversation history in save
+      const projectToSave = {
+        ...project,
+        conversation_history: chatMessages
+      };
+      
       if (projectId) {
-        await axios.put(`${API}/projects/${projectId}`, project);
-        toast.success('Projet sauvegardé');
+        await axios.put(`${API}/projects/${projectId}`, projectToSave);
+        toast.success('Projet et conversation sauvegardés');
       } else {
-        const response = await axios.post(`${API}/projects`, project);
+        const response = await axios.post(`${API}/projects`, projectToSave);
         toast.success('Projet créé');
         navigate(`/editor/${response.data.id}`);
       }
@@ -158,7 +189,7 @@ const EditorPage = () => {
 
     try {
       if (useAgentic) {
-        // Use Agentic System
+        // Use Agentic System with full context
         const agenticMessage = { 
           role: 'assistant', 
           content: '🤖 **Système Agentique Activé**\n\n' +
@@ -166,11 +197,19 @@ const EditorPage = () => {
         };
         setChatMessages(prev => [...prev, agenticMessage]);
 
+        // BUG 4: Send full conversation history to maintain context
+        const conversationContext = chatMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
         const response = await axios.post(`${API}/generate/agentic`, {
           message: inputMessage,
           model: selectedModel,
           api_key: apiKey,
-          current_files: project.files
+          current_files: project.files,
+          conversation_history: conversationContext, // BUG 4: Include history
+          project_id: projectId
         });
 
         if (response.data.success) {
@@ -207,7 +246,7 @@ const EditorPage = () => {
             return newMessages;
           });
 
-          // Apply generated files
+          // BUG 4: Apply generated files with smart merge (incremental, not full replace)
           if (response.data.files && response.data.files.length > 0) {
             setProject(prev => {
               const updatedFiles = [...prev.files];
@@ -215,8 +254,10 @@ const EditorPage = () => {
               response.data.files.forEach(newFile => {
                 const existingIndex = updatedFiles.findIndex(f => f.name === newFile.name);
                 if (existingIndex >= 0) {
+                  // Update existing file
                   updatedFiles[existingIndex] = newFile;
                 } else {
+                  // Add new file
                   updatedFiles.push(newFile);
                 }
               });
@@ -224,11 +265,14 @@ const EditorPage = () => {
               return { ...prev, files: updatedFiles };
             });
             
+            // BUG 1: Force file tabs to re-render after file update
+            setFileTabsKey(prev => prev + 1);
+            
             toast.success(`${response.data.files.length} fichier(s) généré(s) par le système agentique !`);
           }
         }
       } else {
-        // Use Standard OpenRouter
+        // Use Standard OpenRouter with conversation history
         const conversationHistory = chatMessages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -302,6 +346,9 @@ const EditorPage = () => {
         
         return { ...prev, files: updatedFiles };
       });
+      
+      // BUG 1: Force file tabs re-render
+      setFileTabsKey(prev => prev + 1);
       
       toast.success(`${newFiles.length} fichier(s) mis à jour`);
     }
@@ -412,6 +459,9 @@ const EditorPage = () => {
     }));
     
     setCurrentFileIndex(project.files.length);
+    
+    // BUG 1: Force file tabs re-render
+    setFileTabsKey(prev => prev + 1);
   };
 
   const deleteFile = (index) => {
@@ -429,26 +479,57 @@ const EditorPage = () => {
       if (currentFileIndex >= project.files.length - 1) {
         setCurrentFileIndex(Math.max(0, project.files.length - 2));
       }
+      
+      // BUG 1: Force file tabs re-render
+      setFileTabsKey(prev => prev + 1);
     }
   };
 
-  const downloadProject = () => {
-    const zip = project.files.map(file => `
-=== ${file.name} ===
-${file.content}
-`).join('\n\n');
-    
-    const blob = new Blob([zip], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${project.name}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast.success('Projet téléchargé');
+  // BUG 2: Real ZIP download with JSZip instead of concatenated text
+  const downloadProject = async () => {
+    try {
+      const zip = new JSZip();
+      
+      // Add all project files to the ZIP
+      project.files.forEach(file => {
+        zip.file(file.name, file.content);
+      });
+      
+      // Add a README.md with project info
+      const readmeContent = `# ${project.name}
+
+${project.description || 'Projet créé avec Devora'}
+
+## Fichiers inclus
+${project.files.map(f => `- ${f.name}`).join('\n')}
+
+## Généré avec Devora
+Ce projet a été créé avec [Devora](https://devora.app) - Générateur de code IA.
+`;
+      zip.file('README.md', readmeContent);
+      
+      // Generate the ZIP blob
+      const blob = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 9 }
+      });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Projet téléchargé en ZIP');
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      toast.error('Erreur lors de la création du ZIP');
+    }
   };
 
   const copyCode = async () => {
@@ -459,6 +540,14 @@ ${file.content}
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error('Erreur lors de la copie');
+    }
+  };
+
+  // BUG 4: Clear conversation but keep files
+  const clearConversation = () => {
+    if (window.confirm('Effacer l\'historique de conversation ? Les fichiers seront conservés.')) {
+      setChatMessages([]);
+      toast.success('Conversation effacée');
     }
   };
 
@@ -492,8 +581,10 @@ ${file.content}
               size="sm"
               onClick={downloadProject}
               className="text-gray-400 hover:text-white"
+              title="Télécharger en ZIP"
             >
-              <Download className="w-4 h-4" />
+              <Archive className="w-4 h-4 mr-1" />
+              ZIP
             </Button>
             
             <Dialog open={showGithubDialog} onOpenChange={setShowGithubDialog}>
@@ -632,10 +723,24 @@ ${file.content}
           {/* Chat Panel */}
           <div className="h-full border-r border-white/5 bg-black/20 flex flex-col">
           <div className="p-4 border-b border-white/5 flex-shrink-0">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-emerald-400" />
-              Assistant IA
-            </h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                Assistant IA
+              </h2>
+              {chatMessages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearConversation}
+                  className="text-gray-500 hover:text-red-400 text-xs"
+                  title="Effacer la conversation"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Effacer
+                </Button>
+              )}
+            </div>
             
             {/* Agentic Mode Toggle */}
             <div className="mt-3 bg-white/5 rounded-lg p-3 border border-white/10">
@@ -778,11 +883,14 @@ ${file.content}
 
         {/* Code Editor & Preview */}
         <div className="h-full flex flex-col">
-          {/* File Tabs */}
-          <div className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0">
+          {/* BUG 1 FIX: File Tabs moved outside conditional with stable key */}
+          <div 
+            key={`file-tabs-${fileTabsKey}`}
+            className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0"
+          >
             {project.files.map((file, idx) => (
               <div
-                key={idx}
+                key={`${file.name}-${idx}`}
                 data-testid={`file-tab-${idx}`}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
                   currentFileIndex === idx
