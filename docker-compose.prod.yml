@@ -2,27 +2,31 @@ version: '3.8'
 
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/uglyswap/devora-saas-v2/backend:latest
     ports:
       - "4521:4521"
     environment:
-      - MONGODB_URI=mongodb://devora:devora2024secure@mongodb:27017/devora?authSource=admin
-      - PORT=4521
+      - MONGO_URL=mongodb://devora:devora2024secure@mongodb:27017/devora?authSource=admin
+      - DB_NAME=devora
+      - SECRET_KEY=${SECRET_KEY:-DevoraSecretKey2024SuperSecureMin32Characters!}
+      - FRONTEND_URL=https://devora.fun
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
     depends_on:
       - mongodb
     restart: unless-stopped
+    networks:
+      - devora-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - REACT_APP_BACKEND_URL=https://api.devora.fun
+    image: ghcr.io/uglyswap/devora-saas-v2/frontend:latest
     ports:
       - "4522:4522"
+    environment:
+      - REACT_APP_BACKEND_URL=https://api.devora.fun
     restart: unless-stopped
+    networks:
+      - devora-network
 
   mongodb:
     image: mongo:7
@@ -33,6 +37,12 @@ services:
     volumes:
       - mongodb_data:/data/db
     restart: unless-stopped
+    networks:
+      - devora-network
 
 volumes:
   mongodb_data:
+
+networks:
+  devora-network:
+    driver: bridge
