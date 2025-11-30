@@ -9,7 +9,7 @@ import {
   ArrowLeft, Send, Save, Download, Github, Globe, 
   Loader2, Code2, Eye, MessageSquare, FileCode,
   Play, Settings, Plus, X, Copy, Check, EyeOff, PanelLeftClose, PanelLeftOpen,
-  Bot, Sparkles, Trash2, ExternalLink, Rocket
+  Bot, Sparkles, Trash2, ExternalLink, Rocket, Layers
 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
@@ -38,6 +38,9 @@ const EditorPage = () => {
   const [copied, setCopied] = useState(false);
   const [showEditor, setShowEditor] = useState(true);
   const [useAgenticMode, setUseAgenticMode] = useState(true);
+  
+  // NEW: Fullstack mode toggle
+  const [useFullstackMode, setUseFullstackMode] = useState(false);
   
   // BUG 1 FIX: Key to force stable re-renders of file tabs in SplitPane
   const [fileTabsKey, setFileTabsKey] = useState(0);
@@ -135,6 +138,12 @@ const EditorPage = () => {
         setPreviewUrl(loadedProject.vercel_url);
       }
       
+      // Auto-detect fullstack mode based on project files
+      const hasTypeScript = loadedProject.files?.some(f => f.name.endsWith('.tsx') || f.name.endsWith('.ts'));
+      if (hasTypeScript) {
+        setUseFullstackMode(true);
+      }
+      
       // BUG 1 FIX: Force file tabs to re-render with stable key
       setFileTabsKey(prev => prev + 1);
     } catch (error) {
@@ -204,7 +213,7 @@ const EditorPage = () => {
     }
   };
 
-  const sendMessage = async (useAgentic = true) => {
+  const sendMessage = async () => {
     if (!inputMessage.trim() || !apiKey) {
       toast.error('Veuillez entrer un message et configurer votre clé API');
       return;
@@ -216,27 +225,48 @@ const EditorPage = () => {
     setGenerating(true);
 
     try {
-      if (useAgentic) {
-        // Use Agentic System
+      if (useAgenticMode) {
+        // Determine which mode we're using
+        const isFullstack = useFullstackMode;
+        
         const agenticMessage = { 
           role: 'assistant', 
-          content: '🤖 **Système Agentique Activé**\n\n' +
-                   '🔄 **Phase 1 : Planification**\nAnalyse des exigences...' 
+          content: isFullstack 
+            ? '🚀 **Génération Full-Stack Next.js**\n\n' +
+              '🔄 **Architect Agent** : Analyse des exigences...\n' +
+              '⏳ Génération Frontend + Backend + Database en parallèle...'
+            : '🤖 **Système Agentique Activé**\n\n' +
+              '🔄 **Phase 1 : Planification**\nAnalyse des exigences...' 
         };
         setChatMessages(prev => [...prev, agenticMessage]);
 
+        // Choose endpoint based on fullstack mode
+        const endpoint = isFullstack 
+          ? `${API}/generate/fullstack`
+          : `${API}/generate/agentic`;
+
         // BUG 4 FIX: Include conversation history in request
-        const response = await axios.post(`${API}/generate/agentic`, {
+        const requestBody = {
           message: inputMessage,
           model: selectedModel,
           api_key: apiKey,
           current_files: project.files,
-          conversation_history: chatMessages.slice(-10) // Last 10 messages for context
-        });
+          conversation_history: chatMessages.slice(-10), // Last 10 messages for context
+          project_id: projectId || null
+        };
+        
+        // Add project_type for fullstack
+        if (isFullstack) {
+          requestBody.project_type = 'saas'; // Default to SaaS, could be made configurable
+        }
+
+        const response = await axios.post(endpoint, requestBody);
 
         if (response.data.success) {
           // Build detailed progress message
-          let progressMsg = '🤖 **Système Agentique - Résultat**\n\n';
+          let progressMsg = isFullstack 
+            ? '🚀 **Full-Stack Next.js - Résultat**\n\n'
+            : '🤖 **Système Agentique - Résultat**\n\n';
           
           const events = response.data.progress_events || [];
           events.forEach(evt => {
@@ -250,14 +280,22 @@ const EditorPage = () => {
               'reviewing': '🔍',
               'review_complete': '✅',
               'fixing': '🔧',
-              'complete': '🎉'
+              'complete': '🎉',
+              'architect': '🏗️',
+              'frontend': '🎨',
+              'backend': '⚙️',
+              'database': '🗄️'
             }[evt.event] || '•';
             
             progressMsg += `${emoji} ${evt.data.message}\n`;
           });
           
-          progressMsg += `\n✨ Génération terminée en ${response.data.iterations} itération(s) !`;
+          progressMsg += `\n✨ Génération terminée en ${response.data.iterations || 1} itération(s) !`;
           progressMsg += `\n📦 ${response.data.files?.length || 0} fichier(s) généré(s).`;
+          
+          if (isFullstack) {
+            progressMsg += '\n\n💡 Cliquez sur **Preview Vercel** pour voir le résultat.';
+          }
 
           setChatMessages(prev => {
             const newMessages = [...prev];
@@ -273,6 +311,13 @@ const EditorPage = () => {
             setProject(prev => {
               const updatedFiles = [...prev.files];
               
+              // For fullstack mode, we might want to replace all files
+              if (isFullstack && response.data.files.length > 3) {
+                // Clear old HTML/CSS/JS files and use new ones
+                return { ...prev, files: response.data.files };
+              }
+              
+              // Otherwise merge files
               response.data.files.forEach(newFile => {
                 const existingIndex = updatedFiles.findIndex(f => f.name === newFile.name);
                 if (existingIndex >= 0) {
@@ -291,7 +336,8 @@ const EditorPage = () => {
             // Clear preview URL when new files are generated (needs new preview)
             setPreviewUrl(null);
             
-            toast.success(`${response.data.files.length} fichier(s) généré(s) par le système agentique !`);
+            const modeLabel = isFullstack ? 'Full-Stack' : 'agentique';
+            toast.success(`${response.data.files.length} fichier(s) généré(s) en mode ${modeLabel} !`);
           }
         }
       } else {
@@ -808,7 +854,7 @@ const EditorPage = () => {
               onChange={(e) => setProject({ ...project, name: e.target.value })}
               className="bg-transparent border-none text-lg font-semibold focus-visible:ring-0 w-64"
             />
-            {isFullStackProject() && (
+            {(isFullStackProject() || useFullstackMode) && (
               <span className="text-xs bg-gradient-to-r from-emerald-500 to-blue-500 text-white px-2 py-1 rounded-full">
                 Full-Stack
               </span>
@@ -959,7 +1005,7 @@ const EditorPage = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <SplitPane split="vertical" minSize={250} maxSize={600} defaultSize={320}>
+        <SplitPane split="vertical" minSize={250} maxSize={600} defaultSize={350}>
           {/* Chat Panel */}
           <div className="h-full border-r border-white/5 bg-black/20 flex flex-col">
           <div className="p-4 border-b border-white/5 flex-shrink-0">
@@ -1015,6 +1061,44 @@ const EditorPage = () => {
               </p>
             </div>
             
+            {/* NEW: Full-Stack Mode Toggle */}
+            <div className={`mt-2 rounded-lg p-3 border transition-all ${
+              useFullstackMode 
+                ? 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/30' 
+                : 'bg-white/5 border-white/10'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-medium">Full-Stack Next.js</span>
+                </div>
+                <button
+                  onClick={() => setUseFullstackMode(!useFullstackMode)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    useFullstackMode ? 'bg-blue-500' : 'bg-gray-600'
+                  }`}
+                  data-testid="fullstack-mode-toggle"
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useFullstackMode ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">
+                {useFullstackMode ? (
+                  <>
+                    <span className="text-blue-400">●</span> Next.js 14+ · TypeScript · Tailwind · Supabase · Stripe
+                  </>
+                ) : (
+                  <>
+                    <span className="text-gray-500">○</span> HTML / CSS / JavaScript simple
+                  </>
+                )}
+              </p>
+            </div>
+            
             <div className="mt-3 space-y-2">
               <Select value={selectedModel} onValueChange={setSelectedModel}>
                 <SelectTrigger data-testid="model-selector" className="bg-white/5 border-white/10">
@@ -1057,7 +1141,12 @@ const EditorPage = () => {
               <div className="text-center text-gray-500 py-8">
                 <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-30" />
                 <p className="text-sm">Commencez une conversation</p>
-                <p className="text-xs mt-2">Décrivez ce que vous voulez créer</p>
+                <p className="text-xs mt-2">
+                  {useFullstackMode 
+                    ? 'Décrivez votre SaaS, e-commerce ou dashboard'
+                    : 'Décrivez ce que vous voulez créer'
+                  }
+                </p>
               </div>
             ) : (
               chatMessages.map((msg, idx) => (
@@ -1081,7 +1170,9 @@ const EditorPage = () => {
               <div className="bg-white/5 border border-white/10 p-3 rounded-lg mr-4">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                  <p className="text-sm text-gray-400">Génération en cours...</p>
+                  <p className="text-sm text-gray-400">
+                    {useFullstackMode ? 'Génération Full-Stack en cours...' : 'Génération en cours...'}
+                  </p>
                 </div>
               </div>
             )}
@@ -1100,22 +1191,27 @@ const EditorPage = () => {
                     sendMessage();
                   }
                 }}
-                placeholder="Décrivez ce que vous voulez créer..."
+                placeholder={useFullstackMode 
+                  ? 'Décrivez votre SaaS ou application...'
+                  : 'Décrivez ce que vous voulez créer...'
+                }
                 className="bg-white/5 border-white/10 resize-none"
                 rows={3}
               />
               <Button
                 data-testid="send-message-button"
-                onClick={() => sendMessage(useAgenticMode)}
+                onClick={sendMessage}
                 disabled={generating || !apiKey}
                 className={`self-end ${
-                  useAgenticMode 
-                    ? 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600' 
-                    : 'bg-emerald-500 hover:bg-emerald-600'
+                  useFullstackMode
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+                    : useAgenticMode 
+                      ? 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600' 
+                      : 'bg-emerald-500 hover:bg-emerald-600'
                 }`}
-                title={useAgenticMode ? 'Générer avec système agentique' : 'Générer normalement'}
+                title={useFullstackMode ? 'Générer Full-Stack Next.js' : useAgenticMode ? 'Générer avec système agentique' : 'Générer normalement'}
               >
-                {useAgenticMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                {useFullstackMode ? <Rocket className="w-4 h-4" /> : useAgenticMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
           </div>
