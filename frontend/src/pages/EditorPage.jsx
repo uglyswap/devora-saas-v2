@@ -730,7 +730,7 @@ const EditorPage = () => {
   };
 
   // Render preview panel based on project type
-  const renderPreviewPanel = () => {
+  const renderPreviewPanel = (showToggleButton = false) => {
     const isFullStack = isFullStackProject();
     
     return (
@@ -748,6 +748,19 @@ const EditorPage = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Show editor toggle button when editor is hidden */}
+            {showToggleButton && (
+              <Button
+                data-testid="show-editor-button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEditor(true)}
+                className="text-gray-600 hover:text-gray-900"
+                title="Afficher l'éditeur"
+              >
+                <PanelLeftOpen className="w-4 h-4" />
+              </Button>
+            )}
             {/* Show Vercel Preview button for Full-Stack projects */}
             {isFullStack && (
               <>
@@ -1307,31 +1320,9 @@ const EditorPage = () => {
                   {renderPreviewPanel()}
                 </SplitPane>
               ) : (
-                /* Preview only when editor is hidden */
-                <div className="h-full flex flex-col">
-                  <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm font-medium text-gray-700">Aperçu</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        data-testid="show-editor-button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowEditor(true)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="Afficher l'éditeur"
-                      >
-                        <PanelLeftOpen className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    {renderPreviewPanel()}
-                  </div>
-                </div>
-              )}
+              /* Preview only when editor is hidden - use renderPreviewPanel with toggle button */
+              renderPreviewPanel(true)
+            )}
             </div>
           </div>
         </SplitPane>
