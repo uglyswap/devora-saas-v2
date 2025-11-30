@@ -1,15 +1,17 @@
 version: '3.8'
 
 services:
-  # MongoDB Database
+  # ===========================================
+  # MongoDB - Main Application Database
+  # ===========================================
   mongodb:
     image: mongo:7
     container_name: devora-mongodb
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: devora_admin
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-devora_admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-DevoraSecure2024Mongo}
-      MONGO_INITDB_DATABASE: devora_db
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-devora_db}
     volumes:
       - mongodb_data:/data/db
     networks:
@@ -20,7 +22,31 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend FastAPI
+  # ===========================================
+  # PostgreSQL - Memori Persistent Memory
+  # ===========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: devora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-devora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-DevoraSecure2024Postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-devora_memory}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - devora-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devora} -d ${POSTGRES_DB:-devora_memory}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Backend - FastAPI Application
+  # ===========================================
   backend:
     build:
       context: ./backend
@@ -28,24 +54,34 @@ services:
     container_name: devora-backend
     restart: unless-stopped
     ports:
-      - "4521:4521"
+      - "${BACKEND_PORT:-4521}:4521"
     environment:
-      # MongoDB
-      MONGO_URL: mongodb://devora_admin:${MONGO_PASSWORD:-DevoraSecure2024Mongo}@mongodb:27017/devora_db?authSource=admin
-      DB_NAME: devora_db
-      # JWT
-      SECRET_KEY: ${SECRET_KEY:-DevoraJWTSecretKey2024SuperSecure!Min32Chars}
+      # MongoDB Connection
+      MONGO_URL: mongodb://${MONGO_USER:-devora_admin}:${MONGO_PASSWORD:-DevoraSecure2024Mongo}@mongodb:27017/${MONGO_DB:-devora_db}?authSource=admin
+      DB_NAME: ${MONGO_DB:-devora_db}
+      
+      # PostgreSQL for Memori
+      MEMORI_DATABASE_URL: postgresql://${POSTGRES_USER:-devora}:${POSTGRES_PASSWORD:-DevoraSecure2024Postgres}@postgres:5432/${POSTGRES_DB:-devora_memory}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-devora}:${POSTGRES_PASSWORD:-DevoraSecure2024Postgres}@postgres:5432/${POSTGRES_DB:-devora_memory}
+      
+      # JWT Authentication
+      SECRET_KEY: ${SECRET_KEY:-DevoraJWTSecretKey2024SuperSecureMin32Characters!}
       ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${TOKEN_EXPIRE_MINUTES:-1440}
+      
       # URLs
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4522}
+      
       # Stripe (optional)
-      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      # Resend (optional)
+      
+      # Resend Email (optional)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
     depends_on:
       mongodb:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - devora-network
@@ -54,8 +90,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
-  # Frontend React
+  # ===========================================
+  # Frontend - React Application
+  # ===========================================
   frontend:
     build:
       context: ./frontend
@@ -65,14 +104,22 @@ services:
     container_name: devora-frontend
     restart: unless-stopped
     ports:
-      - "4522:4522"
+      - "${FRONTEND_PORT:-4522}:4522"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - devora-network
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:4522 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   mongodb_data:
+    driver: local
+  postgres_data:
     driver: local
 
 networks:
