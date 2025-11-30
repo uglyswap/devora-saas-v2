@@ -81,11 +81,12 @@ const EditorPage = () => {
   const isFullStackProject = useCallback(() => {
     const files = project.files || [];
     const hasTypeScript = files.some(f => f.name.endsWith('.tsx') || f.name.endsWith('.ts'));
-    const hasHtml = files.some(f => f.name.endsWith('.html'));
     const hasAppRouter = files.some(f => f.name.includes('app/') || f.name.includes('app\\'));
-    
-    // Full-Stack if: has TypeScript files OR has App Router structure, AND no plain HTML
-    return (hasTypeScript || hasAppRouter) && !hasHtml;
+    const hasPackageJson = files.some(f => f.name === 'package.json');
+    const hasNextConfig = files.some(f => f.name === 'next.config.js' || f.name === 'next.config.ts');
+
+    // Full-Stack if: has TypeScript OR App Router OR Next.js config (ignore default HTML files)
+    return hasTypeScript || hasAppRouter || (hasPackageJson && hasNextConfig);
   }, [project.files]);
 
   useEffect(() => {
@@ -296,10 +297,18 @@ const EditorPage = () => {
 
           // Apply generated files
           if (response.data.files && response.data.files.length > 0) {
+            const generatedFiles = response.data.files;
+
             setProject(prev => {
-              const updatedFiles = [...prev.files];
-              
-              response.data.files.forEach(newFile => {
+              let updatedFiles = [...prev.files];
+
+              // For Full-Stack projects, remove default starter files
+              if (useFullstackMode) {
+                const defaultFiles = ['index.html', 'styles.css', 'script.js'];
+                updatedFiles = updatedFiles.filter(f => !defaultFiles.includes(f.name));
+              }
+
+              generatedFiles.forEach(newFile => {
                 const existingIndex = updatedFiles.findIndex(f => f.name === newFile.name);
                 if (existingIndex >= 0) {
                   updatedFiles[existingIndex] = newFile;
@@ -307,13 +316,23 @@ const EditorPage = () => {
                   updatedFiles.push(newFile);
                 }
               });
-              
+
               return { ...prev, files: updatedFiles };
             });
-            
+
+            // For Full-Stack, select a meaningful file (package.json or first component)
+            if (useFullstackMode) {
+              const packageJsonIndex = generatedFiles.findIndex(f => f.name === 'package.json');
+              if (packageJsonIndex >= 0) {
+                setCurrentFileIndex(packageJsonIndex);
+              } else {
+                setCurrentFileIndex(0);
+              }
+            }
+
             // Clear preview URL when new files are generated (needs new preview)
             setPreviewUrl(null);
-            
+
             toast.success(`${response.data.files.length} fichier(s) généré(s) par le système ${modeLabel.toLowerCase()} !`);
           }
         }
