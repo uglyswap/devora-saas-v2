@@ -21,6 +21,14 @@ from routes_admin import router as admin_router
 from routes_support import router as support_router
 from auth import get_current_user
 
+# Import Memori SDK for persistent memory
+try:
+    from memory_service import DevoraMemory, get_memory_instance
+    MEMORY_ENABLED = True
+except ImportError:
+    logging.warning("memory_service not available, running without persistent memory")
+    MEMORY_ENABLED = False
+
 # MongoDB connection with centralized config
 client = AsyncIOMotorClient(settings.MONGO_URL)
 db = client[settings.DB_NAME]
@@ -109,6 +117,7 @@ class AgenticRequest(BaseModel):
     current_files: List[ProjectFile] = []
     conversation_history: List[Dict[str, str]] = []  # BUG 4 FIX: Accept conversation
     project_id: Optional[str] = None
+    user_id: Optional[str] = None  # For memory integration
 
 class FullStackRequest(BaseModel):
     """Request for full-stack project generation"""
@@ -119,6 +128,7 @@ class FullStackRequest(BaseModel):
     conversation_history: List[Dict[str, str]] = []
     project_type: Optional[str] = None  # saas, ecommerce, blog, dashboard, api
     project_id: Optional[str] = None
+    user_id: Optional[str] = None  # For memory integration
 
 class ExportGithubRequest(BaseModel):
     project_id: str
@@ -543,8 +553,30 @@ async def deploy_to_vercel(request: DeployVercelRequest):
 # Agentic Code Generation (Original - HTML/CSS/JS)
 @api_router.post("/generate/agentic")
 async def generate_with_agentic_system(request: AgenticRequest):
-    """Generate code using the agentic system with context compression"""
+    """Generate code using the agentic system with context compression and persistent memory"""
     try:
+        # Initialize memory if available
+        memory = None
+        memory_context = ""
+        user_preferences = {}
+        
+        if MEMORY_ENABLED and request.user_id:
+            try:
+                memory = get_memory_instance(request.user_id, request.project_id)
+                
+                # Retrieve relevant context from past interactions
+                relevant_memories = memory.get_relevant_context(request.message, limit=5)
+                if relevant_memories:
+                    memory_context = "\n\n--- Previous relevant context ---\n"
+                    for mem in relevant_memories:
+                        memory_context += f"- {mem.get('content', '')[:200]}...\n"
+                
+                # Get user preferences
+                user_preferences = memory.get_user_preferences()
+                logging.info(f"Memory loaded: {len(relevant_memories)} relevant memories, {len(user_preferences)} preferences")
+            except Exception as mem_error:
+                logging.warning(f"Memory retrieval error: {mem_error}")
+        
         # Apply context compression to files if needed
         files_as_dicts = [f.model_dump() for f in request.current_files]
         conversation = request.conversation_history.copy()
@@ -558,6 +590,11 @@ async def generate_with_agentic_system(request: AgenticRequest):
         
         if compression_stats.get('compressed'):
             logging.info(f"Agentic context compressed: saved {compression_stats['total']['tokens_saved']} tokens")
+        
+        # Enhance request with memory context
+        enhanced_message = request.message
+        if memory_context:
+            enhanced_message = f"{request.message}\n{memory_context}"
         
         # Create orchestrator
         orchestrator = OrchestratorAgent(
@@ -579,17 +616,37 @@ async def generate_with_agentic_system(request: AgenticRequest):
         
         # Execute agentic workflow with compressed context
         result = await orchestrator.execute(
-            user_request=request.message,
+            user_request=enhanced_message,
             current_files=compressed_files,
             conversation_history=compressed_messages
         )
+        
+        # Store interaction in memory for future learning
+        if memory and result.get('success'):
+            try:
+                files_generated = [f.get('name', '') for f in result.get('files', [])]
+                memory.store_interaction(
+                    user_message=request.message,
+                    assistant_response=f"Generated {len(files_generated)} files: {', '.join(files_generated)}",
+                    metadata={
+                        "mode": "agentic",
+                        "model": request.model,
+                        "files_count": len(files_generated),
+                        "iterations": result.get('iterations', 1),
+                        "project_id": request.project_id
+                    }
+                )
+                logging.info("Interaction stored in memory")
+            except Exception as store_error:
+                logging.warning(f"Failed to store interaction: {store_error}")
         
         # Return result with progress events
         return {
             **result,
             "progress_events": progress_events,
             "context_compressed": compression_stats.get('compressed', False),
-            "compression_stats": compression_stats if compression_stats.get('compressed') else None
+            "compression_stats": compression_stats if compression_stats.get('compressed') else None,
+            "memory_enabled": memory is not None
         }
         
     except Exception as e:
@@ -599,7 +656,7 @@ async def generate_with_agentic_system(request: AgenticRequest):
 # Full-Stack Project Generation (NEW - Next.js/Supabase/Stripe)
 @api_router.post("/generate/fullstack")
 async def generate_fullstack_project(request: FullStackRequest):
-    """Generate full-stack Next.js project using OrchestratorV2.
+    """Generate full-stack Next.js project using OrchestratorV2 with persistent memory.
     
     This endpoint uses specialized agents to generate:
     - Frontend: Next.js 14+ App Router, React, Tailwind, shadcn/ui
@@ -615,9 +672,41 @@ async def generate_fullstack_project(request: FullStackRequest):
     - custom: Auto-detect from description
     """
     try:
+        # Initialize memory if available
+        memory = None
+        memory_context = ""
+        user_preferences = {}
+        
+        if MEMORY_ENABLED and request.user_id:
+            try:
+                memory = get_memory_instance(request.user_id, request.project_id)
+                
+                # Retrieve relevant context from past interactions
+                relevant_memories = memory.get_relevant_context(request.message, limit=5)
+                if relevant_memories:
+                    memory_context = "\n\n--- Previous relevant context ---\n"
+                    for mem in relevant_memories:
+                        memory_context += f"- {mem.get('content', '')[:200]}...\n"
+                
+                # Get user preferences (preferred stack, patterns, etc.)
+                user_preferences = memory.get_user_preferences()
+                logging.info(f"Fullstack memory loaded: {len(relevant_memories)} memories, {len(user_preferences)} preferences")
+            except Exception as mem_error:
+                logging.warning(f"Memory retrieval error: {mem_error}")
+        
         # Prepare files
         files_as_dicts = [f.model_dump() for f in request.current_files]
         conversation = request.conversation_history.copy()
+        
+        # Enhance request with memory context
+        enhanced_message = request.message
+        if memory_context:
+            enhanced_message = f"{request.message}\n{memory_context}"
+        
+        # Apply user preferences if available
+        project_type = request.project_type
+        if not project_type and user_preferences.get('preferred_project_type'):
+            project_type = user_preferences['preferred_project_type']
         
         # Create OrchestratorV2 for full-stack generation
         orchestrator = OrchestratorV2(
@@ -639,11 +728,40 @@ async def generate_fullstack_project(request: FullStackRequest):
         
         # Execute full-stack generation workflow
         result = await orchestrator.execute(
-            user_request=request.message,
+            user_request=enhanced_message,
             current_files=files_as_dicts,
             conversation_history=conversation,
-            project_type=request.project_type
+            project_type=project_type
         )
+        
+        # Store interaction in memory for future learning
+        if memory and result.get('success'):
+            try:
+                files_generated = [f.get('name', '') for f in result.get('files', [])]
+                memory.store_interaction(
+                    user_message=request.message,
+                    assistant_response=f"Generated fullstack project with {len(files_generated)} files: {', '.join(files_generated[:5])}...",
+                    metadata={
+                        "mode": "fullstack",
+                        "model": request.model,
+                        "project_type": project_type or "auto",
+                        "files_count": len(files_generated),
+                        "stack": ["next.js", "typescript", "tailwind", "supabase"],
+                        "project_id": request.project_id
+                    }
+                )
+                
+                # Learn user preference for project type
+                if project_type:
+                    memory.store_interaction(
+                        user_message=f"User prefers {project_type} projects",
+                        assistant_response="Preference noted",
+                        metadata={"type": "preference", "key": "preferred_project_type", "value": project_type}
+                    )
+                
+                logging.info("Fullstack interaction stored in memory")
+            except Exception as store_error:
+                logging.warning(f"Failed to store fullstack interaction: {store_error}")
         
         # Return result with progress events and metadata
         return {
@@ -654,7 +772,8 @@ async def generate_fullstack_project(request: FullStackRequest):
                 "frontend": ["next.js", "react", "tailwind", "shadcn/ui"],
                 "backend": ["api-routes", "server-actions"],
                 "database": ["supabase", "postgresql"]
-            }
+            },
+            "memory_enabled": memory is not None
         }
         
     except Exception as e:
@@ -685,13 +804,14 @@ async def root():
     return {
         "message": "Devora API", 
         "status": "running", 
-        "version": "3.0.0",
+        "version": "3.1.0",
         "features": [
             "openrouter",
             "agentic",
             "fullstack",
             "github-export",
-            "vercel-deploy"
+            "vercel-deploy",
+            "persistent-memory" if MEMORY_ENABLED else "memory-disabled"
         ]
     }
 
