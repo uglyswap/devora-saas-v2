@@ -42,9 +42,6 @@ const EditorPage = () => {
   // NEW: Fullstack mode toggle for Next.js generation
   const [useFullstackMode, setUseFullstackMode] = useState(false);
   
-  // BUG 1 FIX: Key to force stable re-renders of file tabs in SplitPane
-  const [fileTabsKey, setFileTabsKey] = useState(0);
-  
   // Preview state for Full-Stack projects
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -122,6 +119,13 @@ const EditorPage = () => {
     }
   }, [chatMessages]);
 
+  // Ensure currentFileIndex is valid when files change
+  useEffect(() => {
+    if (currentFileIndex >= project.files.length) {
+      setCurrentFileIndex(Math.max(0, project.files.length - 1));
+    }
+  }, [project.files.length, currentFileIndex]);
+
   const loadProject = async () => {
     try {
       const response = await axios.get(`${API}/projects/${projectId}`);
@@ -146,8 +150,8 @@ const EditorPage = () => {
         setUseFullstackMode(true);
       }
       
-      // BUG 1 FIX: Force file tabs to re-render with stable key
-      setFileTabsKey(prev => prev + 1);
+      // Reset file index to 0 for newly loaded project
+      setCurrentFileIndex(0);
     } catch (error) {
       console.error('Error loading project:', error);
       toast.error('Erreur lors du chargement du projet');
@@ -307,9 +311,6 @@ const EditorPage = () => {
               return { ...prev, files: updatedFiles };
             });
             
-            // BUG 1 FIX: Update file tabs key to ensure stable rendering
-            setFileTabsKey(prev => prev + 1);
-            
             // Clear preview URL when new files are generated (needs new preview)
             setPreviewUrl(null);
             
@@ -391,9 +392,6 @@ const EditorPage = () => {
         
         return { ...prev, files: updatedFiles };
       });
-      
-      // BUG 1 FIX: Update file tabs key
-      setFileTabsKey(prev => prev + 1);
       
       // Clear preview URL
       setPreviewUrl(null);
@@ -644,9 +642,8 @@ const EditorPage = () => {
       files: [...prev.files, newFile]
     }));
     
+    // Select the new file
     setCurrentFileIndex(project.files.length);
-    // BUG 1 FIX: Update file tabs key
-    setFileTabsKey(prev => prev + 1);
   };
 
   const deleteFile = (index) => {
@@ -661,11 +658,10 @@ const EditorPage = () => {
         files: prev.files.filter((_, i) => i !== index)
       }));
       
-      if (currentFileIndex >= project.files.length - 1) {
-        setCurrentFileIndex(Math.max(0, project.files.length - 2));
+      // Adjust currentFileIndex if needed
+      if (currentFileIndex >= index && currentFileIndex > 0) {
+        setCurrentFileIndex(currentFileIndex - 1);
       }
-      // BUG 1 FIX: Update file tabs key
-      setFileTabsKey(prev => prev + 1);
     }
   };
 
@@ -705,7 +701,7 @@ const EditorPage = () => {
 
   const copyCode = async () => {
     try {
-      await navigator.clipboard.writeText(project.files[currentFileIndex].content);
+      await navigator.clipboard.writeText(project.files[currentFileIndex]?.content || '');
       setCopied(true);
       toast.success('Code copié');
       setTimeout(() => setCopied(false), 2000);
@@ -720,7 +716,7 @@ const EditorPage = () => {
     
     return (
       <div className="h-full flex flex-col bg-white">
-        <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+        <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-blue-500" />
             <span className="text-sm font-medium text-gray-700">
@@ -808,6 +804,48 @@ const EditorPage = () => {
       </div>
     );
   };
+
+  // Render file tabs bar - always visible
+  const renderFileTabs = () => (
+    <div className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0">
+      {project.files.map((file, idx) => (
+        <div
+          key={file.name}
+          data-testid={`file-tab-${idx}`}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors flex-shrink-0 ${
+            currentFileIndex === idx
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              : 'bg-white/5 text-gray-400 hover:bg-white/10'
+          }`}
+          onClick={() => setCurrentFileIndex(idx)}
+        >
+          <FileCode className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm font-medium whitespace-nowrap">{file.name}</span>
+          {project.files.length > 1 && (
+            <button
+              data-testid={`delete-file-${idx}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteFile(idx);
+              }}
+              className="text-gray-500 hover:text-red-400 flex-shrink-0"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      ))}
+      <Button
+        data-testid="add-file-button"
+        variant="ghost"
+        size="sm"
+        onClick={addNewFile}
+        className="text-gray-400 hover:text-white flex-shrink-0"
+      >
+        <Plus className="w-4 h-4" />
+      </Button>
+    </div>
+  );
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0a0b]">
@@ -984,332 +1022,299 @@ const EditorPage = () => {
         <SplitPane split="vertical" minSize={250} maxSize={600} defaultSize={320}>
           {/* Chat Panel */}
           <div className="h-full border-r border-white/5 bg-black/20 flex flex-col">
-          <div className="p-4 border-b border-white/5 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-emerald-400" />
-                Assistant IA
-              </h2>
-              {/* BUG 4 FIX: Clear conversation button */}
-              {chatMessages.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearConversation}
-                  className="text-gray-400 hover:text-red-400"
-                  title="Effacer la conversation"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-            
-            {/* Agentic Mode Toggle */}
-            <div className="mt-3 bg-white/5 rounded-lg p-3 border border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Bot className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-medium">Mode Agentique</span>
-                </div>
-                <button
-                  onClick={() => setUseAgenticMode(!useAgenticMode)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    useAgenticMode ? 'bg-emerald-500' : 'bg-gray-600'
-                  }`}
-                  data-testid="agentic-mode-toggle"
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      useAgenticMode ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-              <p className="text-xs text-gray-400">
-                {useAgenticMode ? (
-                  <>
-                    <Sparkles className="w-3 h-3 inline mr-1" />
-                    Système multi-agents : planification, génération, test et amélioration automatique
-                  </>
-                ) : (
-                  'Génération simple et rapide'
+            <div className="p-4 border-b border-white/5 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-emerald-400" />
+                  Assistant IA
+                </h2>
+                {/* BUG 4 FIX: Clear conversation button */}
+                {chatMessages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearConversation}
+                    className="text-gray-400 hover:text-red-400"
+                    title="Effacer la conversation"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 )}
-              </p>
-            </div>
-            
-            {/* NEW: Fullstack Mode Toggle */}
-            {useAgenticMode && (
-              <div className="mt-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3 border border-blue-500/20">
+              </div>
+              
+              {/* Agentic Mode Toggle */}
+              <div className="mt-3 bg-white/5 rounded-lg p-3 border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm font-medium">Mode Full-Stack</span>
+                    <Bot className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-medium">Mode Agentique</span>
                   </div>
                   <button
-                    onClick={() => setUseFullstackMode(!useFullstackMode)}
+                    onClick={() => setUseAgenticMode(!useAgenticMode)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      useFullstackMode ? 'bg-blue-500' : 'bg-gray-600'
+                      useAgenticMode ? 'bg-emerald-500' : 'bg-gray-600'
                     }`}
-                    data-testid="fullstack-mode-toggle"
+                    data-testid="agentic-mode-toggle"
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        useFullstackMode ? 'translate-x-6' : 'translate-x-1'
+                        useAgenticMode ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
                 </div>
                 <p className="text-xs text-gray-400">
-                  {useFullstackMode ? (
+                  {useAgenticMode ? (
                     <>
-                      <Rocket className="w-3 h-3 inline mr-1" />
-                      Next.js 14+ • TypeScript • Tailwind • Supabase • shadcn/ui
+                      <Sparkles className="w-3 h-3 inline mr-1" />
+                      Système multi-agents : planification, génération, test et amélioration automatique
                     </>
                   ) : (
-                    'HTML/CSS/JS simple (aperçu instantané)'
+                    'Génération simple et rapide'
                   )}
                 </p>
               </div>
-            )}
-            
-            <div className="mt-3 space-y-2">
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger data-testid="model-selector" className="bg-white/5 border-white/10">
-                  <SelectValue placeholder="Modèle" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1c] border-white/10">
-                  {availableModels.length > 0 ? (
-                    availableModels.slice(0, 20).map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name || model.id}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <>
-                      <SelectItem value="openai/gpt-4o">GPT-4o</SelectItem>
-                      <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
-                      <SelectItem value="google/gemini-2.0-flash-exp">Gemini 2.0 Flash</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
               
-              {!apiKey && (
+              {/* NEW: Fullstack Mode Toggle */}
+              {useAgenticMode && (
+                <div className="mt-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3 border border-blue-500/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm font-medium">Mode Full-Stack</span>
+                    </div>
+                    <button
+                      onClick={() => setUseFullstackMode(!useFullstackMode)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        useFullstackMode ? 'bg-blue-500' : 'bg-gray-600'
+                      }`}
+                      data-testid="fullstack-mode-toggle"
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          useFullstackMode ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    {useFullstackMode ? (
+                      <>
+                        <Rocket className="w-3 h-3 inline mr-1" />
+                        Next.js 14+ • TypeScript • Tailwind • Supabase • shadcn/ui
+                      </>
+                    ) : (
+                      'HTML/CSS/JS simple (aperçu instantané)'
+                    )}
+                  </p>
+                </div>
+              )}
+              
+              <div className="mt-3 space-y-2">
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger data-testid="model-selector" className="bg-white/5 border-white/10">
+                    <SelectValue placeholder="Modèle" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1c] border-white/10">
+                    {availableModels.length > 0 ? (
+                      availableModels.slice(0, 20).map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name || model.id}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="openai/gpt-4o">GPT-4o</SelectItem>
+                        <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
+                        <SelectItem value="google/gemini-2.0-flash-exp">Gemini 2.0 Flash</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                
+                {!apiKey && (
+                  <Button
+                    data-testid="configure-api-key-button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/settings')}
+                    className="w-full border-emerald-500/30 text-emerald-400"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Configurer la clé API
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4" data-testid="chat-messages-container">
+              {chatMessages.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                  <p className="text-sm">Commencez une conversation</p>
+                  <p className="text-xs mt-2">Décrivez ce que vous voulez créer</p>
+                </div>
+              ) : (
+                chatMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    data-testid={`chat-message-${idx}`}
+                    className={`p-3 rounded-lg ${
+                      msg.role === 'user'
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 ml-4'
+                        : 'bg-white/5 border border-white/10 mr-4'
+                    }`}
+                  >
+                    <p className="text-xs text-gray-400 mb-1">
+                      {msg.role === 'user' ? 'Vous' : 'Assistant'}
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                ))
+              )}
+              {generating && (
+                <div className="bg-white/5 border border-white/10 p-3 rounded-lg mr-4">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    <p className="text-sm text-gray-400">Génération en cours...</p>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            
+            <div className="p-4 border-t border-white/5 flex-shrink-0">
+              <div className="flex gap-2">
+                <Textarea
+                  data-testid="chat-input"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder={useFullstackMode 
+                    ? "Décrivez votre app SaaS, e-commerce, dashboard..." 
+                    : "Décrivez ce que vous voulez créer..."
+                  }
+                  className="bg-white/5 border-white/10 resize-none"
+                  rows={3}
+                />
                 <Button
-                  data-testid="configure-api-key-button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/settings')}
-                  className="w-full border-emerald-500/30 text-emerald-400"
+                  data-testid="send-message-button"
+                  onClick={sendMessage}
+                  disabled={generating || !apiKey}
+                  className={`self-end ${
+                    useFullstackMode
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+                      : useAgenticMode 
+                        ? 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600' 
+                        : 'bg-emerald-500 hover:bg-emerald-600'
+                  }`}
+                  title={useFullstackMode ? 'Générer projet Full-Stack' : useAgenticMode ? 'Générer avec système agentique' : 'Générer normalement'}
                 >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configurer la clé API
+                  {useFullstackMode ? <Layers className="w-4 h-4" /> : useAgenticMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
                 </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Code Editor & Preview */}
+          <div className="h-full flex flex-col">
+            {/* File Tabs - ALWAYS VISIBLE (moved outside of showEditor condition) */}
+            {renderFileTabs()}
+
+            {/* Editor & Preview Split */}
+            <div className="flex-1 overflow-hidden">
+              {showEditor ? (
+                <SplitPane split="vertical" minSize={300} defaultSize="50%">
+                  {/* Code Editor */}
+                  <div className="h-full flex flex-col border-r border-white/5">
+                    <div className="p-2 border-b border-white/5 bg-black/20 flex justify-between items-center flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Code2 className="w-4 h-4 text-emerald-400" />
+                        <span className="text-sm font-medium">Éditeur</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          data-testid="toggle-editor-button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowEditor(false)}
+                          className="text-gray-400 hover:text-white"
+                          title="Masquer l'éditeur"
+                        >
+                          <PanelLeftClose className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          data-testid="copy-code-button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={copyCode}
+                          className="text-gray-400 hover:text-white"
+                        >
+                          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <Editor
+                        height="100%"
+                        language={project.files[currentFileIndex]?.language || 'plaintext'}
+                        value={project.files[currentFileIndex]?.content || ''}
+                        onChange={(value) => {
+                          const updatedFiles = [...project.files];
+                          if (updatedFiles[currentFileIndex]) {
+                            updatedFiles[currentFileIndex].content = value || '';
+                            setProject({ ...project, files: updatedFiles });
+                          }
+                        }}
+                        theme="vs-dark"
+                        options={{
+                          minimap: { enabled: false },
+                          fontSize: 14,
+                          lineNumbers: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          tabSize: 2,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preview */}
+                  {renderPreviewPanel()}
+                </SplitPane>
+              ) : (
+                /* Preview only when editor is hidden */
+                <div className="h-full flex flex-col">
+                  <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm font-medium text-gray-700">Aperçu</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        data-testid="show-editor-button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowEditor(true)}
+                        className="text-gray-600 hover:text-gray-900"
+                        title="Afficher l'éditeur"
+                      >
+                        <PanelLeftOpen className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    {renderPreviewPanel()}
+                  </div>
+                </div>
               )}
             </div>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 space-y-4" data-testid="chat-messages-container">
-            {chatMessages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                <p className="text-sm">Commencez une conversation</p>
-                <p className="text-xs mt-2">Décrivez ce que vous voulez créer</p>
-              </div>
-            ) : (
-              chatMessages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  data-testid={`chat-message-${idx}`}
-                  className={`p-3 rounded-lg ${
-                    msg.role === 'user'
-                      ? 'bg-emerald-500/10 border border-emerald-500/20 ml-4'
-                      : 'bg-white/5 border border-white/10 mr-4'
-                  }`}
-                >
-                  <p className="text-xs text-gray-400 mb-1">
-                    {msg.role === 'user' ? 'Vous' : 'Assistant'}
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                </div>
-              ))
-            )}
-            {generating && (
-              <div className="bg-white/5 border border-white/10 p-3 rounded-lg mr-4">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                  <p className="text-sm text-gray-400">Génération en cours...</p>
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-          
-          <div className="p-4 border-t border-white/5 flex-shrink-0">
-            <div className="flex gap-2">
-              <Textarea
-                data-testid="chat-input"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder={useFullstackMode 
-                  ? "Décrivez votre app SaaS, e-commerce, dashboard..." 
-                  : "Décrivez ce que vous voulez créer..."
-                }
-                className="bg-white/5 border-white/10 resize-none"
-                rows={3}
-              />
-              <Button
-                data-testid="send-message-button"
-                onClick={sendMessage}
-                disabled={generating || !apiKey}
-                className={`self-end ${
-                  useFullstackMode
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                    : useAgenticMode 
-                      ? 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600' 
-                      : 'bg-emerald-500 hover:bg-emerald-600'
-                }`}
-                title={useFullstackMode ? 'Générer projet Full-Stack' : useAgenticMode ? 'Générer avec système agentique' : 'Générer normalement'}
-              >
-                {useFullstackMode ? <Layers className="w-4 h-4" /> : useAgenticMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Code Editor & Preview */}
-        <div className="h-full flex flex-col">
-          {/* File Tabs - BUG 1 FIX: Use key to force stable renders */}
-          <div key={`file-tabs-${fileTabsKey}`} className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0">
-            {project.files.map((file, idx) => (
-              <div
-                key={`${file.name}-${idx}`}
-                data-testid={`file-tab-${idx}`}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
-                  currentFileIndex === idx
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                }`}
-                onClick={() => setCurrentFileIndex(idx)}
-              >
-                <FileCode className="w-4 h-4" />
-                <span className="text-sm font-medium whitespace-nowrap">{file.name}</span>
-                {project.files.length > 1 && (
-                  <button
-                    data-testid={`delete-file-${idx}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteFile(idx);
-                    }}
-                    className="text-gray-500 hover:text-red-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            ))}
-            <Button
-              data-testid="add-file-button"
-              variant="ghost"
-              size="sm"
-              onClick={addNewFile}
-              className="text-gray-400 hover:text-white"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {/* Editor & Preview Split */}
-          <div className="flex-1 overflow-hidden">
-            {showEditor ? (
-              <SplitPane split="vertical" minSize={300} defaultSize="50%">
-                {/* Code Editor */}
-                <div className="h-full flex flex-col border-r border-white/5">
-                <div className="p-2 border-b border-white/5 bg-black/20 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Code2 className="w-4 h-4 text-emerald-400" />
-                    <span className="text-sm font-medium">Éditeur</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      data-testid="toggle-editor-button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowEditor(false)}
-                      className="text-gray-400 hover:text-white"
-                      title="Masquer l'éditeur"
-                    >
-                      <PanelLeftClose className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      data-testid="copy-code-button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={copyCode}
-                      className="text-gray-400 hover:text-white"
-                    >
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-              <div className="flex-1">
-                <Editor
-                  height="100%"
-                  language={project.files[currentFileIndex]?.language || 'plaintext'}
-                  value={project.files[currentFileIndex]?.content || ''}
-                  onChange={(value) => {
-                    const updatedFiles = [...project.files];
-                    updatedFiles[currentFileIndex].content = value || '';
-                    setProject({ ...project, files: updatedFiles });
-                  }}
-                  theme="vs-dark"
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    lineNumbers: 'on',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    tabSize: 2,
-                  }}
-                />
-              </div>
-            </div>
-
-              {/* Preview */}
-              {renderPreviewPanel()}
-              </SplitPane>
-            ) : (
-              /* Preview seul quand l'éditeur est masqué */
-              <div className="h-full flex flex-col">
-                <div className="p-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm font-medium text-gray-700">Aperçu</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      data-testid="show-editor-button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowEditor(true)}
-                      className="text-gray-600 hover:text-gray-900"
-                      title="Afficher l'éditeur"
-                    >
-                      <PanelLeftOpen className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                {renderPreviewPanel()}
-              </div>
-            )}
-          </div>
-        </div>
         </SplitPane>
       </div>
     </div>
