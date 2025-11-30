@@ -89,6 +89,14 @@ const EditorPage = () => {
     return hasTypeScript || hasAppRouter || (hasPackageJson && hasNextConfig);
   }, [project.files]);
 
+  // FIX: Update preview when toggling editor visibility
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updatePreview();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [showEditor]);
+
   useEffect(() => {
     if (projectId) {
       loadProject();
