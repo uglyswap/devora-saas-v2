@@ -9,7 +9,7 @@ import {
   ArrowLeft, Send, Save, Download, Github, Globe, 
   Loader2, Code2, Eye, MessageSquare, FileCode,
   Play, Settings, Plus, X, Copy, Check, EyeOff, PanelLeftClose, PanelLeftOpen,
-  Bot, Sparkles, Trash2, ExternalLink, Rocket
+  Bot, Sparkles, Trash2, ExternalLink, Rocket, Layers
 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
@@ -38,6 +38,9 @@ const EditorPage = () => {
   const [copied, setCopied] = useState(false);
   const [showEditor, setShowEditor] = useState(true);
   const [useAgenticMode, setUseAgenticMode] = useState(true);
+  
+  // NEW: Fullstack mode toggle for Next.js generation
+  const [useFullstackMode, setUseFullstackMode] = useState(false);
   
   // BUG 1 FIX: Key to force stable re-renders of file tabs in SplitPane
   const [fileTabsKey, setFileTabsKey] = useState(0);
@@ -135,6 +138,14 @@ const EditorPage = () => {
         setPreviewUrl(loadedProject.vercel_url);
       }
       
+      // Detect fullstack mode from existing files
+      const hasTypeScript = loadedProject.files?.some(f => 
+        f.name.endsWith('.tsx') || f.name.endsWith('.ts')
+      );
+      if (hasTypeScript) {
+        setUseFullstackMode(true);
+      }
+      
       // BUG 1 FIX: Force file tabs to re-render with stable key
       setFileTabsKey(prev => prev + 1);
     } catch (error) {
@@ -204,7 +215,7 @@ const EditorPage = () => {
     }
   };
 
-  const sendMessage = async (useAgentic = true) => {
+  const sendMessage = async () => {
     if (!inputMessage.trim() || !apiKey) {
       toast.error('Veuillez entrer un message et configurer votre clé API');
       return;
@@ -216,27 +227,34 @@ const EditorPage = () => {
     setGenerating(true);
 
     try {
-      if (useAgentic) {
-        // Use Agentic System
+      if (useAgenticMode) {
+        // Determine endpoint based on fullstack mode
+        const endpoint = useFullstackMode 
+          ? `${API}/generate/fullstack`
+          : `${API}/generate/agentic`;
+        
+        const modeLabel = useFullstackMode ? 'Full-Stack Next.js' : 'Agentique';
+        
         const agenticMessage = { 
           role: 'assistant', 
-          content: '🤖 **Système Agentique Activé**\n\n' +
+          content: `🤖 **Système ${modeLabel} Activé**\n\n` +
                    '🔄 **Phase 1 : Planification**\nAnalyse des exigences...' 
         };
         setChatMessages(prev => [...prev, agenticMessage]);
 
         // BUG 4 FIX: Include conversation history in request
-        const response = await axios.post(`${API}/generate/agentic`, {
+        const response = await axios.post(endpoint, {
           message: inputMessage,
           model: selectedModel,
           api_key: apiKey,
           current_files: project.files,
-          conversation_history: chatMessages.slice(-10) // Last 10 messages for context
+          conversation_history: chatMessages.slice(-10), // Last 10 messages for context
+          project_type: useFullstackMode ? 'saas' : undefined
         });
 
         if (response.data.success) {
           // Build detailed progress message
-          let progressMsg = '🤖 **Système Agentique - Résultat**\n\n';
+          let progressMsg = `🤖 **Système ${modeLabel} - Résultat**\n\n`;
           
           const events = response.data.progress_events || [];
           events.forEach(evt => {
@@ -258,6 +276,10 @@ const EditorPage = () => {
           
           progressMsg += `\n✨ Génération terminée en ${response.data.iterations} itération(s) !`;
           progressMsg += `\n📦 ${response.data.files?.length || 0} fichier(s) généré(s).`;
+          
+          if (useFullstackMode && response.data.stack) {
+            progressMsg += `\n\n🛠️ **Stack:** ${response.data.stack.frontend?.join(', ')}`;
+          }
 
           setChatMessages(prev => {
             const newMessages = [...prev];
@@ -291,7 +313,7 @@ const EditorPage = () => {
             // Clear preview URL when new files are generated (needs new preview)
             setPreviewUrl(null);
             
-            toast.success(`${response.data.files.length} fichier(s) généré(s) par le système agentique !`);
+            toast.success(`${response.data.files.length} fichier(s) généré(s) par le système ${modeLabel.toLowerCase()} !`);
           }
         }
       } else {
@@ -1015,6 +1037,41 @@ const EditorPage = () => {
               </p>
             </div>
             
+            {/* NEW: Fullstack Mode Toggle */}
+            {useAgenticMode && (
+              <div className="mt-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3 border border-blue-500/20">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-medium">Mode Full-Stack</span>
+                  </div>
+                  <button
+                    onClick={() => setUseFullstackMode(!useFullstackMode)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      useFullstackMode ? 'bg-blue-500' : 'bg-gray-600'
+                    }`}
+                    data-testid="fullstack-mode-toggle"
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        useFullstackMode ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400">
+                  {useFullstackMode ? (
+                    <>
+                      <Rocket className="w-3 h-3 inline mr-1" />
+                      Next.js 14+ • TypeScript • Tailwind • Supabase • shadcn/ui
+                    </>
+                  ) : (
+                    'HTML/CSS/JS simple (aperçu instantané)'
+                  )}
+                </p>
+              </div>
+            )}
+            
             <div className="mt-3 space-y-2">
               <Select value={selectedModel} onValueChange={setSelectedModel}>
                 <SelectTrigger data-testid="model-selector" className="bg-white/5 border-white/10">
@@ -1100,22 +1157,27 @@ const EditorPage = () => {
                     sendMessage();
                   }
                 }}
-                placeholder="Décrivez ce que vous voulez créer..."
+                placeholder={useFullstackMode 
+                  ? "Décrivez votre app SaaS, e-commerce, dashboard..." 
+                  : "Décrivez ce que vous voulez créer..."
+                }
                 className="bg-white/5 border-white/10 resize-none"
                 rows={3}
               />
               <Button
                 data-testid="send-message-button"
-                onClick={() => sendMessage(useAgenticMode)}
+                onClick={sendMessage}
                 disabled={generating || !apiKey}
                 className={`self-end ${
-                  useAgenticMode 
-                    ? 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600' 
-                    : 'bg-emerald-500 hover:bg-emerald-600'
+                  useFullstackMode
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+                    : useAgenticMode 
+                      ? 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600' 
+                      : 'bg-emerald-500 hover:bg-emerald-600'
                 }`}
-                title={useAgenticMode ? 'Générer avec système agentique' : 'Générer normalement'}
+                title={useFullstackMode ? 'Générer projet Full-Stack' : useAgenticMode ? 'Générer avec système agentique' : 'Générer normalement'}
               >
-                {useAgenticMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                {useFullstackMode ? <Layers className="w-4 h-4" /> : useAgenticMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
           </div>
