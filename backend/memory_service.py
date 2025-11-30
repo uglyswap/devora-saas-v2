@@ -23,6 +23,40 @@ except ImportError:
     logger.warning("Memori SDK not installed. Run: pip install memorisdk")
 
 
+# Global instance cache for memory objects
+_memory_instances: Dict[str, 'DevoraMemory'] = {}
+
+
+def get_memory_instance(user_id: str, project_id: Optional[str] = None) -> 'DevoraMemory':
+    """Get or create a DevoraMemory instance for a user/project.
+    
+    This function caches instances to avoid creating multiple connections
+    to the database for the same user/project combination.
+    
+    Args:
+        user_id: The unique user identifier
+        project_id: Optional project identifier for project-scoped memory
+        
+    Returns:
+        DevoraMemory instance configured for the user/project
+    """
+    cache_key = f"{user_id}:{project_id or 'global'}"
+    
+    if cache_key not in _memory_instances:
+        _memory_instances[cache_key] = DevoraMemory(user_id, project_id)
+    
+    return _memory_instances[cache_key]
+
+
+def clear_memory_cache():
+    """Clear the memory instance cache.
+    
+    Useful for testing or when you want to force reconnection.
+    """
+    global _memory_instances
+    _memory_instances = {}
+
+
 class DevoraMemory:
     """Intelligent persistent memory for Devora using Memori SDK
     
@@ -44,13 +78,15 @@ class DevoraMemory:
             return
             
         try:
-            # Use PostgreSQL (Supabase/MongoDB) or SQLite fallback
+            # Use PostgreSQL (from docker-compose) or SQLite fallback
             db_url = os.getenv("MEMORI_DATABASE_URL") or os.getenv("DATABASE_URL")
             
             if not db_url:
                 # Fallback to SQLite for development
                 db_url = "sqlite:///devora_memory.db"
                 logger.info("Using SQLite for memory storage (dev mode)")
+            else:
+                logger.info(f"Using PostgreSQL for memory storage")
             
             self.memori = Memori(
                 database_connect=db_url,
@@ -224,7 +260,8 @@ class DevoraMemory:
                 limit=10
             )
             return [p.content if hasattr(p, 'content') else str(p) for p in prefs]
-        except:
+        except Exception as e:
+            logger.warning(f"Failed to get preferences: {e}")
             return []
     
     def get_project_history(self, limit: int = 20) -> List[Dict[str, Any]]:
@@ -278,7 +315,7 @@ def get_memory_for_request(
     - preferences: User preferences
     - system_prompt_addition: Ready-to-use context string
     """
-    memory = DevoraMemory(user_id, project_id)
+    memory = get_memory_instance(user_id, project_id)
     
     if not memory.enabled:
         return {

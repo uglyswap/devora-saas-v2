@@ -1,47 +1,132 @@
 version: '3.8'
 
+# ===========================================
+# DEVORA SAAS V2 - Production Configuration
+# ===========================================
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Requires:
+#   - .env file with all variables configured
+#   - GHCR images built and pushed (via GitHub Actions)
+# ===========================================
+
 services:
-  backend:
-    image: ghcr.io/uglyswap/devora-saas-v2/backend:latest
-    ports:
-      - "4521:4521"
-    environment:
-      - MONGO_URL=mongodb://devora:devora2024secure@mongodb:27017/devora?authSource=admin
-      - DB_NAME=devora
-      - SECRET_KEY=${SECRET_KEY:-DevoraSecretKey2024SuperSecureMin32Characters!}
-      - FRONTEND_URL=https://devora.fun
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
-    depends_on:
-      - mongodb
-    restart: unless-stopped
-    networks:
-      - devora-network
-
-  frontend:
-    image: ghcr.io/uglyswap/devora-saas-v2/frontend:latest
-    ports:
-      - "4522:4522"
-    environment:
-      - REACT_APP_BACKEND_URL=https://api.devora.fun
-    restart: unless-stopped
-    networks:
-      - devora-network
-
+  # ===========================================
+  # MongoDB - Main Application Database
+  # ===========================================
   mongodb:
     image: mongo:7
+    container_name: devora-mongodb
+    restart: always
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=devora
-      - MONGO_INITDB_ROOT_PASSWORD=devora2024secure
-      - MONGO_INITDB_DATABASE=devora
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-devora}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-devora}
     volumes:
       - mongodb_data:/data/db
-    restart: unless-stopped
     networks:
       - devora-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # PostgreSQL - Memori Persistent Memory
+  # ===========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: devora-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-devora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-devora_memory}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - devora-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devora}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Backend - FastAPI Application
+  # ===========================================
+  backend:
+    image: ghcr.io/uglyswap/devora-saas-v2/backend:latest
+    container_name: devora-backend
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-4521}:4521"
+    environment:
+      # MongoDB Connection
+      MONGO_URL: mongodb://${MONGO_USER:-devora}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB:-devora}?authSource=admin
+      DB_NAME: ${MONGO_DB:-devora}
+      
+      # PostgreSQL for Memori
+      MEMORI_DATABASE_URL: postgresql://${POSTGRES_USER:-devora}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-devora_memory}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-devora}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-devora_memory}
+      
+      # JWT Authentication
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${TOKEN_EXPIRE_MINUTES:-1440}
+      
+      # URLs (production)
+      FRONTEND_URL: ${FRONTEND_URL:-https://devora.fun}
+      
+      # Stripe
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      
+      # Resend Email
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - devora-network
+    healthcheck:
+      test: curl -f http://localhost:4521/api/ || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===========================================
+  # Frontend - React Application
+  # ===========================================
+  frontend:
+    image: ghcr.io/uglyswap/devora-saas-v2/frontend:latest
+    container_name: devora-frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-4522}:4522"
+    environment:
+      - REACT_APP_BACKEND_URL=${BACKEND_URL:-https://api.devora.fun}
+    depends_on:
+      - backend
+    networks:
+      - devora-network
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:4522 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   mongodb_data:
+    driver: local
+  postgres_data:
+    driver: local
 
 networks:
   devora-network:
