@@ -491,7 +491,8 @@ async def deploy_to_vercel(request: DeployVercelRequest):
         for file in project.files:
             files.append({
                 "file": file.name,
-                "data": base64.b64encode(file.content.encode()).decode()
+                "data": base64.b64encode(file.content.encode()).decode(),
+                "encoding": "base64"
             })
         
         # Deploy to Vercel
