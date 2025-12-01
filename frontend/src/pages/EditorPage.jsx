@@ -429,9 +429,16 @@ const EditorPage = () => {
 
   const updatePreview = () => {
     if (!iframeRef.current) return;
-    
-    // Check if Full-Stack project
-    if (isFullStackProject()) {
+
+    // Check if Full-Stack project - calculate directly to avoid stale closure issues
+    const files = project.files || [];
+    const hasTypeScript = files.some(f => f.name.endsWith('.tsx') || f.name.endsWith('.ts'));
+    const hasAppRouter = files.some(f => f.name.includes('app/') || f.name.includes('app\\'));
+    const hasPackageJson = files.some(f => f.name === 'package.json');
+    const hasNextConfig = files.some(f => f.name === 'next.config.js' || f.name === 'next.config.ts');
+    const isFullStack = hasTypeScript || hasAppRouter || (hasPackageJson && hasNextConfig);
+
+    if (isFullStack) {
       // Show informative message for Full-Stack projects
       const fullStackMessage = `
 <!DOCTYPE html>
