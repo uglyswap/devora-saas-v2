@@ -478,23 +478,64 @@ async def deploy_to_vercel(request: DeployVercelRequest):
     try:
         # Get project
         project = await get_project(request.project_id)
-        
+
         if not project.files:
             raise HTTPException(status_code=400, detail="Project has no files to deploy")
-        
+
         # Validate project name
         project_name = request.project_name.strip().lower()
         project_name = ''.join(c if c.isalnum() or c == '-' else '-' for c in project_name)
-        
+
+        # Detect if Full-Stack project (Next.js/TypeScript)
+        file_names = [f.name for f in project.files]
+        has_typescript = any(f.endswith('.tsx') or f.endswith('.ts') for f in file_names)
+        has_package_json = 'package.json' in file_names
+        has_next_config = 'next.config.js' in file_names or 'next.config.ts' in file_names
+        is_fullstack = has_typescript or (has_package_json and has_next_config)
+
+        # Default files to exclude for Full-Stack projects
+        default_files = ['index.html', 'styles.css', 'script.js']
+
         # Prepare files for Vercel
         files = []
         for file in project.files:
+            # Skip default starter files for Full-Stack projects
+            if is_fullstack and file.name in default_files:
+                logging.info(f"Skipping default file for fullstack deploy: {file.name}")
+                continue
             files.append({
                 "file": file.name,
                 "data": base64.b64encode(file.content.encode()).decode(),
                 "encoding": "base64"
             })
-        
+
+        # Add vercel.json to allow iframe embedding if not present
+        if not any(f["file"] == "vercel.json" for f in files):
+            vercel_config = {
+                "headers": [
+                    {
+                        "source": "/(.*)",
+                        "headers": [
+                            {"key": "X-Frame-Options", "value": "ALLOWALL"},
+                            {"key": "Content-Security-Policy", "value": "frame-ancestors *"}
+                        ]
+                    }
+                ]
+            }
+            # For Next.js projects, also set the framework
+            if is_fullstack:
+                vercel_config["framework"] = "nextjs"
+
+            files.append({
+                "file": "vercel.json",
+                "data": base64.b64encode(json.dumps(vercel_config, indent=2).encode()).decode(),
+                "encoding": "base64"
+            })
+            logging.info("Added vercel.json for iframe support")
+
+        # Determine framework setting
+        framework = "nextjs" if is_fullstack else None
+
         # Deploy to Vercel
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -507,7 +548,7 @@ async def deploy_to_vercel(request: DeployVercelRequest):
                     "name": project_name,
                     "files": files,
                     "projectSettings": {
-                        "framework": None
+                        "framework": framework
                     },
                     "target": "production"
                 },
