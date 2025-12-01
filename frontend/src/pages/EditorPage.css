@@ -45,3 +45,19 @@
 .Resizer.disabled:hover {
   border-color: transparent;
 }
+
+/* Fix: Constrain SplitPane Panes to prevent content overflow */
+.SplitPane {
+  overflow: hidden !important;
+}
+
+.Pane {
+  overflow: hidden !important;
+  min-width: 0 !important;
+}
+
+/* Ensure the second pane (editor/preview area) is properly constrained */
+.Pane2 {
+  overflow: hidden !important;
+  min-width: 0 !important;
+}
