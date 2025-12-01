@@ -1168,9 +1168,9 @@ const EditorPage = () => {
                   <SelectTrigger data-testid="model-selector" className="bg-white/5 border-white/10">
                     <SelectValue placeholder="Modèle" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a1a1c] border-white/10">
+                  <SelectContent className="bg-[#1a1a1c] border-white/10 max-h-80 overflow-y-auto">
                     {availableModels.length > 0 ? (
-                      availableModels.slice(0, 20).map((model) => (
+                      availableModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
                           {model.name || model.id}
                         </SelectItem>
