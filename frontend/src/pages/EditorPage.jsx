@@ -523,9 +523,15 @@ const EditorPage = () => {
     }
 
     // Standard preview for HTML/CSS/JS projects
-    const htmlFile = project.files.find(f => f.name.endsWith('.html'));
-    const cssFile = project.files.find(f => f.name.endsWith('.css'));
-    const jsFile = project.files.find(f => f.name.endsWith('.js'));
+    // FIX: Prioritize generated files over default starter files
+    const defaultFiles = ['index.html', 'styles.css', 'script.js'];
+
+    const htmlFile = project.files.find(f => f.name.endsWith('.html') && !defaultFiles.includes(f.name))
+                  || project.files.find(f => f.name.endsWith('.html'));
+    const cssFile = project.files.find(f => f.name.endsWith('.css') && !defaultFiles.includes(f.name))
+                  || project.files.find(f => f.name.endsWith('.css'));
+    const jsFile = project.files.find(f => f.name.endsWith('.js') && !defaultFiles.includes(f.name))
+                  || project.files.find(f => f.name.endsWith('.js'));
 
     let html = htmlFile?.content || '<!DOCTYPE html><html><head></head><body><h1>Pas de fichier HTML</h1></body></html>';
     
