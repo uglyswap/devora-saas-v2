@@ -860,7 +860,7 @@ const EditorPage = () => {
 
   // Render file tabs bar - always visible
   const renderFileTabs = () => (
-    <div className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0">
+    <div className="border-b border-white/5 bg-black/20 flex items-center gap-2 px-4 py-2 overflow-x-auto flex-shrink-0 max-w-full">
       {project.files.map((file, idx) => (
         <div
           key={file.name}
@@ -1275,7 +1275,7 @@ const EditorPage = () => {
           </div>
 
           {/* Code Editor & Preview */}
-          <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col overflow-hidden min-w-0">
             {/* File Tabs - ALWAYS VISIBLE (moved outside of showEditor condition) */}
             {renderFileTabs()}
 
