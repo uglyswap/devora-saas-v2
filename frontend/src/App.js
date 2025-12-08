@@ -6,6 +6,7 @@ import CookieConsent from './components/CookieConsent';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
 import EditorPage from './pages/EditorPage';
+import EditorPageUltimate from './pages/EditorPageUltimate';
 import SettingsPage from './pages/SettingsPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -50,6 +51,19 @@ function App() {
             <Route path="/editor/:projectId" element={
               <ProtectedRoute requireSubscription={true}>
                 <EditorPage />
+              </ProtectedRoute>
+            } />
+            
+            {/* Ultimate App Builder Routes */}
+            <Route path="/ultimate" element={
+              <ProtectedRoute requireSubscription={true}>
+                <EditorPageUltimate />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ultimate/:projectId" element={
+              <ProtectedRoute requireSubscription={true}>
+                <EditorPageUltimate />
               </ProtectedRoute>
             } />
             
