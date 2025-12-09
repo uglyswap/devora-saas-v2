@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # Emergent LLM
     EMERGENT_LLM_KEY: Optional[str] = None
 
+    # Security: Installation token for first admin setup
+    # Set this to a secure random value in production to protect init-first-admin endpoint
+    DEVORA_INIT_TOKEN: Optional[str] = None
+
 
 # Instance globale unique
 settings = Settings()

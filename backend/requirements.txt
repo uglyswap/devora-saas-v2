@@ -24,7 +24,7 @@ litellm==1.80.0
 tiktoken==0.12.0
 
 # Memori SDK for persistent memory
-memorisdk>=2.0.0
+memoraisdk>=2.0.0
 
 # Authentication & Security
 python-jose==3.5.0
@@ -58,3 +58,24 @@ google-generativeai==0.8.5
 
 # Type checking (dev)
 mypy==1.18.2
+
+# Cache - Redis
+redis>=5.0.0
+
+# Rate limiting
+slowapi>=0.1.9
+
+# Structured logging
+structlog>=24.1.0
+
+# WebSockets
+websockets>=12.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+mongomock-motor>=0.0.21
+
+# Type hints
+typing-extensions>=4.9.0
