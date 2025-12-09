@@ -199,6 +199,7 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./frontend
           alias-domains: staging.devora.io
+        continue-on-error: true
 
       - name: Deploy Backend (Staging)
         run: |
@@ -238,6 +239,7 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
           working-directory: ./frontend
+        continue-on-error: true
 
       - name: Deploy Backend (Production)
         run: |
