@@ -5,13 +5,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 import CookieConsent from './components/CookieConsent';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
-import EditorPage from './pages/EditorPage';
-import EditorPageUltimate from './pages/EditorPageUltimate';
+// UNIFIED EDITOR - Single editor for all app creation
+import UnifiedEditor from './pages/UnifiedEditor';
 import SettingsPage from './pages/SettingsPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Billing from './pages/Billing';
-import AdminPanel from './pages/AdminPanel';
+// SUPERADMIN DASHBOARD with analytics
+import AdminDashboard from './pages/AdminDashboard';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Support from './pages/Support';
@@ -42,28 +43,36 @@ function App() {
               </ProtectedRoute>
             } />
             
+            {/* UNIFIED EDITOR - Single entry point for all app creation */}
             <Route path="/editor" element={
               <ProtectedRoute requireSubscription={true}>
-                <EditorPage />
+                <UnifiedEditor />
               </ProtectedRoute>
             } />
-            
+
             <Route path="/editor/:projectId" element={
               <ProtectedRoute requireSubscription={true}>
-                <EditorPage />
+                <UnifiedEditor />
               </ProtectedRoute>
             } />
-            
-            {/* Ultimate App Builder Routes */}
+
+            {/* Create new project - redirects to UnifiedEditor */}
+            <Route path="/create" element={
+              <ProtectedRoute requireSubscription={true}>
+                <UnifiedEditor />
+              </ProtectedRoute>
+            } />
+
+            {/* Legacy route - redirect to unified editor */}
             <Route path="/ultimate" element={
               <ProtectedRoute requireSubscription={true}>
-                <EditorPageUltimate />
+                <UnifiedEditor />
               </ProtectedRoute>
             } />
-            
+
             <Route path="/ultimate/:projectId" element={
               <ProtectedRoute requireSubscription={true}>
-                <EditorPageUltimate />
+                <UnifiedEditor />
               </ProtectedRoute>
             } />
             
@@ -73,9 +82,10 @@ function App() {
               </ProtectedRoute>
             } />
             
+            {/* ENTERPRISE ADMIN DASHBOARD */}
             <Route path="/admin" element={
               <ProtectedRoute>
-                <AdminPanel />
+                <AdminDashboard />
               </ProtectedRoute>
             } />
             
