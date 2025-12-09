@@ -52,7 +52,8 @@ async def init_first_admin(
                 status_code=401,
                 detail='X-Init-Token header is required for this operation'
             )
-        if x_init_token != configured_token:
+        from middleware.security import constant_time_compare
+        if not constant_time_compare(x_init_token, configured_token):
             logger.warning(f'Init-first-admin attempt with invalid token')
             raise HTTPException(
                 status_code=403,

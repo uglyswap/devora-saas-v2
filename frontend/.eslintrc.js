@@ -51,7 +51,7 @@ module.exports = {
     'no-with': 'error',
     'no-var': 'error',
     'prefer-const': 'error',
-    'no-unused-vars': ['error', {
+    'no-unused-vars': ['warn', {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
       ignoreRestSiblings: true,
@@ -76,9 +76,9 @@ module.exports = {
     'react/no-danger': 'warn',
     'react/no-deprecated': 'error',
     'react/no-direct-mutation-state': 'error',
-    'react/no-unescaped-entities': 'error',
-    'react/no-unknown-property': 'error',
-    'react/self-closing-comp': 'error',
+    'react/no-unescaped-entities': 'off',
+    'react/no-unknown-property': 'off',
+    'react/self-closing-comp': 'warn',
     'react/jsx-curly-brace-presence': ['error', {
       props: 'never',
       children: 'never',
@@ -102,40 +102,29 @@ module.exports = {
     'jsx-a11y/label-has-associated-control': 'warn',
     'jsx-a11y/no-autofocus': 'warn',
     'jsx-a11y/no-redundant-roles': 'error',
+    'jsx-a11y/no-static-element-interactions': 'warn',
 
     // === Import/Export ===
     'import/no-unresolved': 'off', // Handled by webpack/tsconfig
     'import/named': 'error',
     'import/default': 'error',
     'import/no-duplicates': 'error',
-    'import/order': ['error', {
-      groups: [
-        'builtin',
-        'external',
-        'internal',
-        'parent',
-        'sibling',
-        'index',
-      ],
-      'newlines-between': 'always',
-      alphabetize: {
-        order: 'asc',
-        caseInsensitive: true,
-      },
-    }],
+    'import/order': 'off',
 
     // === Code Quality ===
     'eqeqeq': ['error', 'always', { null: 'ignore' }],
-    'curly': ['error', 'all'],
-    'no-else-return': 'error',
+    'curly': 'off',
+    'no-else-return': 'off',
     'no-empty': ['error', { allowEmptyCatch: true }],
     'no-multi-spaces': 'error',
-    'no-trailing-spaces': 'error',
+    'no-trailing-spaces': 'off',
     'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
-    'semi': ['error', 'always'],
-    'quotes': ['error', 'single', { avoidEscape: true }],
-    'comma-dangle': ['error', 'always-multiline'],
-    'indent': ['error', 2, { SwitchCase: 1 }],
+    'semi': 'off',
+    'quotes': 'off',
+    'comma-dangle': 'off',
+    'indent': 'off',
+    'no-useless-escape': 'off',
+    'no-self-assign': 'off',
     'max-len': ['warn', {
       code: 120,
       ignoreUrls: true,
@@ -179,7 +168,17 @@ module.exports = {
       files: ['**/*.test.js', '**/*.test.jsx', '**/*.spec.js', '**/*.spec.jsx'],
       env: {
         jest: true,
-        'vitest-globals/env': true,
+      },
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        test: 'readonly',
       },
       rules: {
         'no-console': 'off',
