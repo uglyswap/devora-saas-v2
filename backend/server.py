@@ -19,6 +19,10 @@ from routes_auth import router as auth_router
 from routes_billing import router as billing_router
 from routes_admin import router as admin_router
 from routes_support import router as support_router
+from routes_version_control import router as version_control_router
+from routes_templates import router as templates_router
+from routes_streaming import router as streaming_router
+from realtime.websocket_routes import router as realtime_router
 from auth import get_current_user
 
 # Import Memori SDK for persistent memory
@@ -846,13 +850,17 @@ async def root():
     return {
         "message": "Devora API", 
         "status": "running", 
-        "version": "3.1.0",
+        "version": "4.0.0",
         "features": [
             "openrouter",
             "agentic",
             "fullstack",
             "github-export",
             "vercel-deploy",
+            "version-control",
+            "templates-marketplace",
+            "streaming-generation",
+            "realtime-collaboration",
             "persistent-memory" if MEMORY_ENABLED else "memory-disabled"
         ]
     }
@@ -862,6 +870,10 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(billing_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(support_router, prefix="/api")
+app.include_router(version_control_router, prefix="/api")
+app.include_router(templates_router, prefix="/api")
+app.include_router(streaming_router, prefix="/api")
+app.include_router(realtime_router)
 app.include_router(api_router)
 
 app.add_middleware(
