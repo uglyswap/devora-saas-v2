@@ -24,6 +24,16 @@ from routes_templates import router as templates_router
 from routes_streaming import router as streaming_router
 from realtime.websocket_routes import router as realtime_router
 from auth import get_current_user
+from fastapi import Path, Query
+from middleware.security import (
+    SecurityHeadersMiddleware,
+    RequestValidationMiddleware,
+    validate_id_format,
+    sanitize_error_message,
+    log_security_event
+)
+from middleware.rate_limiter import limiter, RateLimits, rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Import Memori SDK for persistent memory
 try:
@@ -225,7 +235,12 @@ async def get_conversation(conversation_id: str):
     return Conversation(**conversation)
 
 @api_router.delete("/conversations/{conversation_id}")
-async def delete_conversation(conversation_id: str):
+async def delete_conversation(
+    conversation_id: str = Path(..., min_length=1, max_length=255),
+    current_user: dict = Depends(get_current_user)
+):
+    if not validate_id_format(conversation_id):
+        raise HTTPException(status_code=400, detail="Invalid conversation ID format")
     result = await db.conversations.delete_one({"id": conversation_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -255,8 +270,13 @@ async def get_projects(current_user: dict = Depends(get_current_user)):
     return projects
 
 @api_router.get("/projects/{project_id}", response_model=Project)
-async def get_project(project_id: str):
-    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+async def get_project(
+    project_id: str = Path(..., min_length=1, max_length=255),
+    current_user: dict = Depends(get_current_user)
+):
+    if not validate_id_format(project_id):
+        raise HTTPException(status_code=400, detail="Invalid project ID format")
+    project = await db.projects.find_one({"id": project_id, "user_id": current_user["user_id"]}, {"_id": 0})
     
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -269,7 +289,16 @@ async def get_project(project_id: str):
     return Project(**project)
 
 @api_router.put("/projects/{project_id}", response_model=Project)
-async def update_project(project_id: str, project: Project):
+async def update_project(
+    project_id: str = Path(..., min_length=1, max_length=255),
+    project: Project = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    if not validate_id_format(project_id):
+        raise HTTPException(status_code=400, detail="Invalid project ID format")
+    existing = await db.projects.find_one({"id": project_id, "user_id": current_user["user_id"]}, {"id": 1})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Project not found")
     project.updated_at = datetime.now(timezone.utc)
     doc = project.model_dump()
     doc['updated_at'] = doc['updated_at'].isoformat()
@@ -282,8 +311,13 @@ async def update_project(project_id: str, project: Project):
     return project
 
 @api_router.delete("/projects/{project_id}")
-async def delete_project(project_id: str):
-    result = await db.projects.delete_one({"id": project_id})
+async def delete_project(
+    project_id: str = Path(..., min_length=1, max_length=255),
+    current_user: dict = Depends(get_current_user)
+):
+    if not validate_id_format(project_id):
+        raise HTTPException(status_code=400, detail="Invalid project ID format")
+    result = await db.projects.delete_one({"id": project_id, "user_id": current_user["user_id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Project not found")
     return {"message": "Project deleted successfully"}
@@ -430,7 +464,7 @@ async def export_to_github(request: ExportGithubRequest):
             if "already exists" in str(e).lower() or e.status == 422:
                 raise HTTPException(
                     status_code=400, 
-                    detail=f"Le repository '{repo_name}' existe déjà. Choisissez un autre nom."
+                    detail=f"Le repository '{repo_name}' existe deja. Choisissez un autre nom."
                 )
             raise HTTPException(status_code=400, detail=f"Erreur GitHub: {str(e)}")
         
@@ -466,7 +500,7 @@ async def export_to_github(request: ExportGithubRequest):
             "success": True,
             "repo_url": repo.html_url,
             "files_created": files_created,
-            "message": f"Projet exporté sur GitHub avec {files_created} fichier(s)"
+            "message": f"Projet exporte sur GitHub avec {files_created} fichier(s)"
         }
         
     except HTTPException:
@@ -571,17 +605,17 @@ async def deploy_to_vercel(request: DeployVercelRequest):
                     "success": True,
                     "url": deployment_url,
                     "deployment_id": result.get('id'),
-                    "message": "Projet déployé sur Vercel avec succès"
+                    "message": "Projet deploye sur Vercel avec succes"
                 }
             elif response.status_code == 401:
                 raise HTTPException(
                     status_code=401, 
-                    detail="Token Vercel invalide ou expiré"
+                    detail="Token Vercel invalide ou expire"
                 )
             elif response.status_code == 403:
                 raise HTTPException(
                     status_code=403,
-                    detail="Permissions insuffisantes. Vérifiez les scopes de votre token."
+                    detail="Permissions insuffisantes. Verifiez les scopes de votre token."
                 )
             else:
                 error_detail = response.json() if response.text else {}
@@ -594,7 +628,7 @@ async def deploy_to_vercel(request: DeployVercelRequest):
         raise
     except Exception as e:
         logging.error(f"Vercel deployment error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors du déploiement: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du deploiement: {str(e)}")
 
 # Agentic Code Generation (Original - HTML/CSS/JS)
 @api_router.post("/generate/agentic")
@@ -876,12 +910,28 @@ app.include_router(streaming_router, prefix="/api")
 app.include_router(realtime_router)
 app.include_router(api_router)
 
+# Security Middlewares
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestValidationMiddleware)
+
+# Rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# CORS - Configured properly for security
+allowed_origins = [
+    settings.FRONTEND_URL,
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+allowed_origins = [o for o in allowed_origins if o]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],  # À configurer en production
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 
 logging.basicConfig(
