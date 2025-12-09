@@ -2,12 +2,13 @@ from fastapi import APIRouter, HTTPException, Depends, Request, status
 from motor.motor_asyncio import AsyncIOMotorClient
 from models import SubscriptionPlan, Invoice
 from auth import get_current_user
-from stripe_service import StripeService
+from stripe_service import StripeService, StripeNotConfiguredError
 from config_service import ConfigService
 from email_service import EmailService
 from datetime import datetime, timezone
 import logging
 import json
+import stripe
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -32,65 +33,132 @@ async def get_subscription_plans():
 
 @router.post('/create-checkout-session')
 async def create_checkout_session(current_user: dict = Depends(get_current_user)):
-    """Create a Stripe checkout session"""
+    """Create a Stripe checkout session
+
+    Returns:
+        dict: Session ID and checkout URL
+
+    Raises:
+        HTTPException 400: Already subscribed
+        HTTPException 404: User not found
+        HTTPException 503: Stripe not configured or unavailable
+    """
     user = await db.users.find_one({'id': current_user['user_id']}, {'_id': 0})
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found'
+            detail='Utilisateur non trouvé'
         )
-    
+
     # Check if user already has active subscription
     if user.get('subscription_status') == 'active':
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='User already has an active subscription'
+            detail='Vous avez déjà un abonnement actif'
         )
-    
-    stripe_customer_id = user.get('stripe_customer_id')
-    if not stripe_customer_id:
-        # Create Stripe customer if doesn't exist
-        stripe_customer_id = await stripe_service.create_customer(
-            email=user['email'],
-            name=user.get('full_name')
+
+    try:
+        stripe_customer_id = user.get('stripe_customer_id')
+        if not stripe_customer_id:
+            # Create Stripe customer if doesn't exist
+            stripe_customer_id = await stripe_service.create_customer(
+                email=user['email'],
+                name=user.get('full_name')
+            )
+            await db.users.update_one(
+                {'id': user['id']},
+                {'$set': {'stripe_customer_id': stripe_customer_id}}
+            )
+
+        # Get trial days from config
+        billing_settings = await config_service.get_billing_settings()
+
+        # Create checkout session
+        session = await stripe_service.create_checkout_session(
+            customer_id=stripe_customer_id,
+            success_url=f"{settings.FRONTEND_URL}/billing/success",
+            cancel_url=f"{settings.FRONTEND_URL}/billing/cancel",
+            user_id=user['id'],
+            trial_days=billing_settings["free_trial_days"]
         )
-        await db.users.update_one(
-            {'id': user['id']},
-            {'$set': {'stripe_customer_id': stripe_customer_id}}
+
+        return session
+
+    except StripeNotConfiguredError as e:
+        logger.error(f"Stripe not configured: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Le système de paiement est temporairement indisponible. Veuillez réessayer plus tard."
         )
-    
-    # Get trial days from config
-    billing_settings = await config_service.get_billing_settings()
-    
-    # Create checkout session
-    session = await stripe_service.create_checkout_session(
-        customer_id=stripe_customer_id,
-        success_url=f"{settings.FRONTEND_URL}/billing/success",
-        cancel_url=f"{settings.FRONTEND_URL}/billing/cancel",
-        user_id=user['id'],
-        trial_days=billing_settings["free_trial_days"]
-    )
-    
-    return session
+    except stripe.error.CardError as e:
+        logger.error(f"Card error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Votre carte a été refusée. Veuillez vérifier vos informations de paiement."
+        )
+    except stripe.error.RateLimitError:
+        logger.error("Stripe rate limit exceeded")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Trop de requêtes. Veuillez patienter quelques instants."
+        )
+    except stripe.error.InvalidRequestError as e:
+        logger.error(f"Invalid Stripe request: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Requête de paiement invalide. Contactez le support si le problème persiste."
+        )
+    except stripe.error.AuthenticationError:
+        logger.error("Stripe authentication failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Erreur de configuration du système de paiement. Contactez l'administrateur."
+        )
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Une erreur est survenue avec le système de paiement. Veuillez réessayer."
+        )
 
 @router.post('/create-portal-session')
 async def create_portal_session(current_user: dict = Depends(get_current_user)):
-    """Create a Stripe customer portal session"""
+    """Create a Stripe customer portal session
+
+    Returns:
+        dict: Portal URL
+
+    Raises:
+        HTTPException 404: No billing info
+        HTTPException 503: Stripe unavailable
+    """
     user = await db.users.find_one({'id': current_user['user_id']}, {'_id': 0})
-    
+
     if not user or not user.get('stripe_customer_id'):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='No billing information found'
+            detail='Aucune information de facturation trouvée'
         )
-    
-    portal_url = await stripe_service.create_portal_session(
-        customer_id=user['stripe_customer_id'],
-        return_url=f"{settings.FRONTEND_URL}/billing"
-    )
-    
-    return {'url': portal_url}
+
+    try:
+        portal_url = await stripe_service.create_portal_session(
+            customer_id=user['stripe_customer_id'],
+            return_url=f"{settings.FRONTEND_URL}/billing"
+        )
+        return {'url': portal_url}
+
+    except StripeNotConfiguredError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Le système de paiement est temporairement indisponible."
+        )
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe portal error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Impossible d'accéder au portail de gestion. Veuillez réessayer."
+        )
 
 @router.get('/invoices')
 async def get_invoices(current_user: dict = Depends(get_current_user)):

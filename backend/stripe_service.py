@@ -3,8 +3,14 @@ from typing import Optional
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from config_service import ConfigService
+from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
+
+
+class StripeNotConfiguredError(Exception):
+    """Exception levée quand Stripe n'est pas configuré dans le système"""
+    pass
 
 
 class StripeService:
@@ -16,7 +22,11 @@ class StripeService:
         self._stripe_configured = False
     
     async def _ensure_stripe_configured(self):
-        """Configure Stripe avec les clés de la DB"""
+        """Configure Stripe avec les clés de la DB
+
+        Raises:
+            StripeNotConfiguredError: Si Stripe n'est pas configuré dans les paramètres système
+        """
         if not self._stripe_configured:
             api_key, webhook_secret, test_mode = await self.config_service.get_stripe_keys()
             if api_key:
@@ -24,7 +34,10 @@ class StripeService:
                 self._stripe_configured = True
                 logger.info(f"Stripe configured in {'test' if test_mode else 'live'} mode")
             else:
-                logger.warning("Stripe API key not configured in system settings")
+                logger.error("Stripe API key not configured - payment system unavailable")
+                raise StripeNotConfiguredError(
+                    "Le système de paiement n'est pas configuré. Contactez l'administrateur."
+                )
     
     async def get_webhook_secret(self) -> Optional[str]:
         """Retourne le webhook secret depuis la config"""
