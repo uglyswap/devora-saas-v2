@@ -3,10 +3,9 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Install dependencies with legacy-peer-deps to resolve conflicts
-COPY package.json yarn.lock* package-lock.json* ./
-RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then npm ci --legacy-peer-deps; \
-    else npm install --legacy-peer-deps; fi
+# Use npm install instead of npm ci to handle package.json/lock mismatches
+COPY package.json package-lock.json* ./
+RUN npm install --legacy-peer-deps
 
 # Fix ajv/ajv-keywords compatibility issue
 RUN npm install ajv@8 --legacy-peer-deps
@@ -26,7 +25,7 @@ FROM nginx:alpine
 # Copy built files
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy nginx config
+# Copy nginx config from build context
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 4522
