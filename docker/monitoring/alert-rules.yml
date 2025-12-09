@@ -1,0 +1,254 @@
+# Prometheus Alert Rules for Devora SaaS
+
+groups:
+  # Service Availability Alerts
+  - name: availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job="devora-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Devora backend service is down"
+          description: "Service {{ $labels.instance }} has been down for more than 2 minutes"
+          runbook_url: "https://docs.devora.io/runbooks/service-down"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{status=~"5.."}[5m])
+            /
+            rate(http_requests_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          runbook_url: "https://docs.devora.io/runbooks/high-error-rate"
+
+  # Performance Alerts
+  - name: performance
+    interval: 30s
+    rules:
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "API latency is high"
+          description: "P95 latency is {{ $value }}s (threshold: 500ms)"
+          runbook_url: "https://docs.devora.io/runbooks/high-latency"
+
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95,
+            rate(db_query_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "P95 query time is {{ $value }}s (threshold: 1s)"
+
+  # Resource Utilization Alerts
+  - name: resources
+    interval: 1m
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.devora.io/runbooks/high-memory"
+
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_size_bytes - node_filesystem_avail_bytes
+          ) / node_filesystem_size_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.devora.io/runbooks/disk-space-low"
+
+  # Database Alerts
+  - name: database
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          (
+            pg_stat_database_numbackends
+            /
+            pg_settings_max_connections
+          ) > 0.9
+        for: 3m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ $value | humanizePercentage }} of connections in use"
+          runbook_url: "https://docs.devora.io/runbooks/db-pool-exhausted"
+
+      - alert: DatabaseReplicationLag
+        expr: |
+          pg_replication_lag_seconds > 60
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Database replication lag detected"
+          description: "Replication lag is {{ $value }}s (threshold: 60s)"
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Database {{ $labels.instance }} is unreachable"
+
+  # Redis Alerts
+  - name: redis
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is unreachable"
+
+      - alert: RedisMemoryHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+  # Payment Processing Alerts
+  - name: payments
+    interval: 30s
+    rules:
+      - alert: PaymentProcessingFailure
+        expr: |
+          (
+            rate(stripe_webhook_failures_total[5m])
+            /
+            rate(stripe_webhook_total[5m])
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          team: payments
+        annotations:
+          summary: "High payment processing failure rate"
+          description: "{{ $value | humanizePercentage }} of payment webhooks failing"
+          runbook_url: "https://docs.devora.io/runbooks/payment-failures"
+
+      - alert: StripeAPIErrors
+        expr: |
+          rate(stripe_api_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: payments
+        annotations:
+          summary: "Stripe API errors detected"
+          description: "{{ $value }} errors per second"
+
+  # SSL Certificate Alerts
+  - name: ssl
+    interval: 1d
+    rules:
+      - alert: SSLCertExpiringSoon
+        expr: |
+          probe_ssl_earliest_cert_expiry - time() < 30 * 24 * 60 * 60
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "SSL certificate expiring soon for {{ $labels.instance }}"
+          description: "Certificate expires in {{ $value | humanizeDuration }}"
+          runbook_url: "https://docs.devora.io/runbooks/ssl-renewal"
+
+  # SLO Tracking
+  - name: slo
+    interval: 1m
+    rules:
+      - alert: ErrorBudgetExhausted
+        expr: |
+          (
+            1 - (
+              rate(http_requests_total{status=~"5.."}[30d])
+              /
+              rate(http_requests_total[30d])
+            )
+          ) / (1 - 0.999) * 100 < 10
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Error budget nearly exhausted"
+          description: "Only {{ $value }}% of error budget remaining"
+
+      - alert: SLOAvailabilityBreach
+        expr: |
+          (
+            sum(up{job="devora-backend"})
+            /
+            count(up{job="devora-backend"})
+          ) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "SLO availability breach"
+          description: "Availability is {{ $value | humanizePercentage }} (SLO: 99.9%)"
