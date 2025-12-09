@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from motor.motor_asyncio import AsyncIOMotorClient
 from models import AdminStats, SystemConfig, SystemConfigUpdate
 from auth import get_current_admin_user
@@ -6,6 +6,7 @@ from config_service import ConfigService
 from stripe_service import StripeService
 from datetime import datetime, timezone, timedelta
 import logging
+import os
 from uuid import uuid4
 from pydantic import BaseModel, EmailStr
 from auth import get_password_hash
@@ -26,10 +27,52 @@ stripe_service = StripeService(db)
 
 
 # Special endpoint to initialize first admin (only works if no admins exist)
+# SECURITY: Requires DEVORA_INIT_TOKEN header in production
 @router.post('/init-first-admin')
-async def init_first_admin(email: str):
-    """Initialize the first admin - only works if no admins exist in the database"""
-    
+async def init_first_admin(
+    email: str,
+    x_init_token: str = Header(None, alias="X-Init-Token")
+):
+    """
+    Initialize the first admin - only works if no admins exist in the database.
+
+    SECURITY: In production, set DEVORA_INIT_TOKEN environment variable.
+    The endpoint will require this token in the X-Init-Token header.
+    If no token is configured, the endpoint is disabled in production.
+    """
+
+    # Security check: Verify installation token if configured
+    configured_token = settings.DEVORA_INIT_TOKEN
+
+    if configured_token:
+        # Token is configured - require it
+        if not x_init_token:
+            logger.warning(f'Init-first-admin attempt without token from request')
+            raise HTTPException(
+                status_code=401,
+                detail='X-Init-Token header is required for this operation'
+            )
+        if x_init_token != configured_token:
+            logger.warning(f'Init-first-admin attempt with invalid token')
+            raise HTTPException(
+                status_code=403,
+                detail='Invalid installation token'
+            )
+    else:
+        # No token configured - only allow if explicitly in development mode
+        # Check for common development indicators
+        is_dev = os.environ.get('ENV', '').lower() in ('dev', 'development', 'local')
+        is_dev = is_dev or os.environ.get('DEBUG', '').lower() in ('true', '1', 'yes')
+
+        if not is_dev:
+            logger.error('Init-first-admin called without DEVORA_INIT_TOKEN configured in production')
+            raise HTTPException(
+                status_code=403,
+                detail='This endpoint is disabled. Set DEVORA_INIT_TOKEN environment variable to enable first admin setup.'
+            )
+        else:
+            logger.warning('Init-first-admin called in development mode without token - proceeding with caution')
+
     # Check if any admin already exists
     existing_admin = await db.users.find_one({'is_admin': True}, {'_id': 0})
     if existing_admin:
@@ -37,12 +80,12 @@ async def init_first_admin(email: str):
             status_code=403,
             detail='An admin already exists. Use the admin panel to promote users.'
         )
-    
+
     # Find the user by email
     user = await db.users.find_one({'email': email}, {'_id': 0})
     if not user:
         raise HTTPException(status_code=404, detail='User not found')
-    
+
     # Promote to admin
     result = await db.users.update_one(
         {'email': email},
@@ -52,12 +95,12 @@ async def init_first_admin(email: str):
             'updated_at': datetime.now(timezone.utc).isoformat()
         }}
     )
-    
+
     if result.modified_count == 0:
         raise HTTPException(status_code=500, detail='Failed to promote user to admin')
-    
+
     logger.info(f'First admin initialized: {email}')
-    
+
     return {
         'message': f'User {email} successfully promoted to first admin',
         'email': email
@@ -90,7 +133,7 @@ async def get_admin_stats(current_admin: dict = Depends(get_current_admin_user))
     # Revenue calculations
     all_invoices = await db.invoices.find({'status': 'paid'}, {'_id': 0}).to_list(None)
     
-    # Total revenue (cumulé)
+    # Total revenue (cumule)
     total_revenue = sum(inv.get('amount', 0) for inv in all_invoices)
     
     # Revenue du mois en cours
@@ -106,9 +149,9 @@ async def get_admin_stats(current_admin: dict = Depends(get_current_admin_user))
                 
                 if inv_date >= start_of_current_month:
                     revenue_current_month += inv.get('amount', 0)
-            except:
-                pass
-    
+            except (ValueError, TypeError) as e:
+                logger.debug(f'Failed to parse invoice date for current month revenue: {created_at_str}, error: {e}')
+
     # Revenue du mois dernier
     revenue_last_month = 0
     for inv in all_invoices:
@@ -122,9 +165,9 @@ async def get_admin_stats(current_admin: dict = Depends(get_current_admin_user))
                 
                 if start_of_last_month <= inv_date < start_of_current_month:
                     revenue_last_month += inv.get('amount', 0)
-            except:
-                pass
-    
+            except (ValueError, TypeError) as e:
+                logger.debug(f'Failed to parse invoice date for last month revenue: {created_at_str}, error: {e}')
+
     # New users this month
     new_users_pipeline = [
         {
@@ -147,9 +190,7 @@ async def get_admin_stats(current_admin: dict = Depends(get_current_admin_user))
     new_users_result = await db.users.aggregate(new_users_pipeline).to_list(1)
     new_users_this_month = new_users_result[0]['count'] if new_users_result else 0
     
-    # Cancellations - chercher dans les users avec subscription_status = 'canceled'
-    # et vérifier quand l'annulation a eu lieu (on peut utiliser updated_at ou créer un champ canceled_at)
-    # Pour l'instant, on compte tous les canceled comme approximation
+    # Cancellations
     all_canceled = await db.users.find({'subscription_status': 'canceled'}, {'_id': 0}).to_list(None)
     
     cancellations_current_month = 0
@@ -168,10 +209,10 @@ async def get_admin_stats(current_admin: dict = Depends(get_current_admin_user))
                     cancellations_current_month += 1
                 elif start_of_last_month <= updated_date < start_of_current_month:
                     cancellations_last_month += 1
-            except:
-                pass
-    
-    # Churn rate (basé sur le mois en cours)
+            except (ValueError, TypeError) as e:
+                logger.debug(f'Failed to parse user cancellation date: {updated_at_str}, error: {e}')
+
+    # Churn rate
     churn_rate = (cancellations_current_month / total_users * 100) if total_users > 0 else 0.0
     
     return AdminStats(
@@ -325,13 +366,11 @@ async def get_user_invoices(
     current_admin: dict = Depends(get_current_admin_user)
 ):
     """Get all invoices for a specific user from Stripe"""
-    # Get user to retrieve stripe_customer_id
     user = await db.users.find_one({'id': user_id}, {'_id': 0})
     
     if not user:
         raise HTTPException(status_code=404, detail='User not found')
     
-    # If user has no Stripe customer ID, return empty
     if not user.get('stripe_customer_id'):
         return {
             'invoices': [],
@@ -339,10 +378,7 @@ async def get_user_invoices(
             'total_paid': 0
         }
     
-    # Get invoices from Stripe
     invoices = await stripe_service.list_invoices(user['stripe_customer_id'], limit=100)
-    
-    # Calculate total paid
     total_paid = sum(inv.get('amount', 0) for inv in invoices if inv.get('status') == 'paid')
     
     return {
@@ -365,14 +401,14 @@ async def gift_free_months(
     if not user:
         raise HTTPException(status_code=404, detail='User not found')
     
-    # Calculate new end date
     from dateutil.relativedelta import relativedelta
     current_end = user.get('current_period_end')
     
     if current_end:
         try:
             current_date = datetime.fromisoformat(current_end)
-        except:
+        except (ValueError, TypeError) as e:
+            logger.warning(f'Failed to parse current_period_end for user {user_id}: {current_end}, error: {e}. Using current time.')
             current_date = datetime.now(timezone.utc)
     else:
         current_date = datetime.now(timezone.utc)
@@ -408,7 +444,6 @@ async def toggle_billing(
     if not user:
         raise HTTPException(status_code=404, detail='User not found')
     
-    # Add a flag to indicate billing exemption
     await db.users.update_one(
         {'id': user_id},
         {
@@ -427,18 +462,16 @@ async def toggle_billing(
     }
 
 
-
-
 # Pydantic models for new endpoints
 class CreateUserRequest(BaseModel):
     email: EmailStr
     name: str
     password: str
-    subscription_status: str = 'trialing'  # 'active' or 'trialing'
+    subscription_status: str = 'trialing'
     is_admin: bool = False
 
 class UpdateUserStatusRequest(BaseModel):
-    subscription_status: str  # 'active' or 'trialing'
+    subscription_status: str
 
 @router.post('/users')
 async def create_user(
@@ -447,7 +480,6 @@ async def create_user(
 ):
     """Create a new user manually from admin panel"""
     
-    # Check if user already exists
     existing_user = await db.users.find_one({'email': user_data.email}, {'_id': 0})
     if existing_user:
         raise HTTPException(
@@ -455,18 +487,15 @@ async def create_user(
             detail='User with this email already exists'
         )
     
-    # Validate subscription status
     if user_data.subscription_status not in ['active', 'trialing']:
         raise HTTPException(
             status_code=400,
             detail='subscription_status must be either "active" or "trialing"'
         )
     
-    # Create user
     user_id = str(uuid4())
     hashed_password = get_password_hash(user_data.password)
     
-    # Calculate trial end date (7 days from now if trialing)
     current_period_end = None
     if user_data.subscription_status == 'trialing':
         trial_end = datetime.now(timezone.utc) + timedelta(days=7)
@@ -489,7 +518,6 @@ async def create_user(
     
     logger.info(f'Admin {current_admin["email"]} created new user: {user_data.email} (status: {user_data.subscription_status}, admin: {user_data.is_admin})')
     
-    # Return user without password
     new_user.pop('hashed_password', None)
     new_user.pop('_id', None)
     
@@ -506,25 +534,21 @@ async def update_user_subscription_status(
 ):
     """Update user subscription status"""
     
-    # Validate subscription status
     if status_data.subscription_status not in ['active', 'trialing']:
         raise HTTPException(
             status_code=400,
             detail='subscription_status must be either "active" or "trialing"'
         )
     
-    # Get user
     user = await db.users.find_one({'id': user_id}, {'_id': 0})
     if not user:
         raise HTTPException(status_code=404, detail='User not found')
     
-    # Update status
     update_data = {
         'subscription_status': status_data.subscription_status,
         'updated_at': datetime.now(timezone.utc).isoformat()
     }
     
-    # If changing to trialing, set trial end date
     if status_data.subscription_status == 'trialing':
         trial_end = datetime.now(timezone.utc) + timedelta(days=7)
         update_data['current_period_end'] = trial_end.isoformat()
