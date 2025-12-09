@@ -28,14 +28,23 @@ import {
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '../ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '../ui/tooltip';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 
+// Types
 interface ElementInfo {
   tagName: string;
   className: string;
@@ -77,6 +86,9 @@ interface EditHistory {
   applied: boolean;
 }
 
+/**
+ * Generate XPath for an element
+ */
 function getXPath(element: Element): string {
   if (element.id) {
     return `//*[@id="${element.id}"]`;
@@ -105,6 +117,9 @@ function getXPath(element: Element): string {
   return '/' + parts.join('/');
 }
 
+/**
+ * Generate unique CSS selector for an element
+ */
 function getSelector(element: Element): string {
   if (element.id) {
     return `#${element.id}`;
@@ -123,6 +138,7 @@ function getSelector(element: Element): string {
       }
     }
 
+    // Add nth-child for uniqueness
     const parent = current.parentElement;
     if (parent) {
       const siblings = Array.from(parent.children).filter(
@@ -141,6 +157,9 @@ function getSelector(element: Element): string {
   return path.join(' > ');
 }
 
+/**
+ * Extract element information
+ */
 function extractElementInfo(element: Element): ElementInfo {
   const computedStyle = window.getComputedStyle(element);
   const rect = element.getBoundingClientRect();
@@ -165,14 +184,27 @@ function extractElementInfo(element: Element): ElementInfo {
   };
 }
 
+/**
+ * Quick edit suggestions based on element type
+ */
 function getQuickSuggestions(element: ElementInfo): EditSuggestion[] {
   const suggestions: EditSuggestion[] = [];
 
+  // Common suggestions
   suggestions.push(
-    { id: 'change-color', type: 'style', description: 'Change color' },
-    { id: 'change-size', type: 'style', description: 'Make it bigger/smaller' }
+    {
+      id: 'change-color',
+      type: 'style',
+      description: 'Change color'
+    },
+    {
+      id: 'change-size',
+      type: 'style',
+      description: 'Make it bigger/smaller'
+    }
   );
 
+  // Tag-specific suggestions
   switch (element.tagName) {
     case 'button':
       suggestions.push(
@@ -222,6 +254,11 @@ function getQuickSuggestions(element: ElementInfo): EditSuggestion[] {
   return suggestions;
 }
 
+/**
+ * SelectAndEdit Component
+ *
+ * Provides visual element selection in preview iframe with AI-powered editing.
+ */
 export function SelectAndEdit({
   iframeRef,
   onEditRequest,
@@ -236,6 +273,13 @@ export function SelectAndEdit({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showQuickActions, setShowQuickActions] = useState(false);
 
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const selectionRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Handle element hover in iframe
+   */
   const handleIframeMouseMove = useCallback((e: MouseEvent) => {
     if (!isActive || !iframeRef.current) return;
 
@@ -246,6 +290,9 @@ export function SelectAndEdit({
     }
   }, [isActive, iframeRef]);
 
+  /**
+   * Handle element click in iframe
+   */
   const handleIframeClick = useCallback((e: MouseEvent) => {
     if (!isActive || !iframeRef.current) return;
 
@@ -261,6 +308,9 @@ export function SelectAndEdit({
     }
   }, [isActive, iframeRef]);
 
+  /**
+   * Setup iframe event listeners
+   */
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -269,10 +319,14 @@ export function SelectAndEdit({
     if (!iframeDoc) return;
 
     if (isActive) {
+      // Add event listeners
       iframeDoc.addEventListener('mousemove', handleIframeMouseMove);
       iframeDoc.addEventListener('click', handleIframeClick, true);
+
+      // Add cursor style
       iframeDoc.body.style.cursor = 'crosshair';
 
+      // Inject highlight styles
       const styleId = 'devora-select-edit-styles';
       if (!iframeDoc.getElementById(styleId)) {
         const style = iframeDoc.createElement('style');
@@ -300,6 +354,9 @@ export function SelectAndEdit({
     };
   }, [isActive, iframeRef, handleIframeMouseMove, handleIframeClick]);
 
+  /**
+   * Apply visual highlight to hovered element
+   */
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -307,10 +364,12 @@ export function SelectAndEdit({
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
     if (!iframeDoc) return;
 
+    // Remove previous highlights
     iframeDoc.querySelectorAll('.devora-highlight').forEach(el => {
       el.classList.remove('devora-highlight');
     });
 
+    // Add highlight to hovered element
     if (hoveredElement && isActive) {
       const el = iframeDoc.querySelector(hoveredElement.selector);
       if (el) {
@@ -319,6 +378,9 @@ export function SelectAndEdit({
     }
   }, [hoveredElement, isActive, iframeRef]);
 
+  /**
+   * Apply visual selection to selected element
+   */
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -326,10 +388,12 @@ export function SelectAndEdit({
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
     if (!iframeDoc) return;
 
+    // Remove previous selections
     iframeDoc.querySelectorAll('.devora-selected').forEach(el => {
       el.classList.remove('devora-selected');
     });
 
+    // Add selection to selected element
     if (selectedElement) {
       const el = iframeDoc.querySelector(selectedElement.selector);
       if (el) {
@@ -338,6 +402,9 @@ export function SelectAndEdit({
     }
   }, [selectedElement, iframeRef]);
 
+  /**
+   * Handle edit submission
+   */
   const handleSubmitEdit = async () => {
     if (!selectedElement || !editInstruction.trim()) {
       toast.error('Please select an element and enter an instruction');
@@ -347,6 +414,7 @@ export function SelectAndEdit({
     try {
       await onEditRequest(selectedElement, editInstruction);
 
+      // Add to history
       const historyEntry: EditHistory = {
         id: `edit-${Date.now()}`,
         element: selectedElement,
@@ -358,6 +426,7 @@ export function SelectAndEdit({
       setEditHistory(prev => [...prev.slice(0, historyIndex + 1), historyEntry]);
       setHistoryIndex(prev => prev + 1);
 
+      // Reset state
       setEditInstruction('');
       setSelectedElement(null);
       setShowQuickActions(false);
@@ -368,10 +437,16 @@ export function SelectAndEdit({
     }
   };
 
+  /**
+   * Handle quick suggestion click
+   */
   const handleQuickSuggestion = (suggestion: EditSuggestion) => {
     setEditInstruction(suggestion.description);
   };
 
+  /**
+   * Undo last edit
+   */
   const handleUndo = () => {
     if (historyIndex >= 0) {
       setHistoryIndex(prev => prev - 1);
@@ -379,6 +454,9 @@ export function SelectAndEdit({
     }
   };
 
+  /**
+   * Redo last undone edit
+   */
   const handleRedo = () => {
     if (historyIndex < editHistory.length - 1) {
       setHistoryIndex(prev => prev + 1);
@@ -390,6 +468,7 @@ export function SelectAndEdit({
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
+      {/* Toolbar */}
       <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -408,14 +487,21 @@ export function SelectAndEdit({
               {isActive ? 'Stop Selecting' : 'Select Element'}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Click to enable element selection mode</TooltipContent>
+          <TooltipContent>
+            Click to enable element selection mode
+          </TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="h-6" />
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={handleUndo} disabled={historyIndex < 0}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleUndo}
+              disabled={historyIndex < 0}
+            >
               <Undo2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -424,7 +510,12 @@ export function SelectAndEdit({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={handleRedo} disabled={historyIndex >= editHistory.length - 1}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRedo}
+              disabled={historyIndex >= editHistory.length - 1}
+            >
               <Redo2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -438,6 +529,7 @@ export function SelectAndEdit({
         )}
       </div>
 
+      {/* Selected Element Info */}
       {selectedElement && (
         <div className="p-3 border rounded-lg bg-background space-y-3">
           <div className="flex items-center justify-between">
@@ -472,6 +564,7 @@ export function SelectAndEdit({
             </p>
           )}
 
+          {/* Quick Suggestions */}
           {showQuickActions && (
             <div className="flex flex-wrap gap-1.5">
               {quickSuggestions.map(suggestion => (
@@ -492,6 +585,7 @@ export function SelectAndEdit({
             </div>
           )}
 
+          {/* Edit Input */}
           <div className="flex gap-2">
             <Textarea
               placeholder="Describe what you want to change..."
@@ -520,13 +614,18 @@ export function SelectAndEdit({
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">Press Ctrl+Enter to apply</p>
+          <p className="text-xs text-muted-foreground">
+            Press Ctrl+Enter to apply
+          </p>
         </div>
       )}
 
+      {/* Hover Preview */}
       {isActive && hoveredElement && !selectedElement && (
         <div className="p-2 border rounded-lg bg-muted/30 text-sm">
-          <span className="font-mono">&lt;{hoveredElement.tagName}&gt;</span>
+          <span className="font-mono">
+            &lt;{hoveredElement.tagName}&gt;
+          </span>
           {hoveredElement.textContent && (
             <span className="text-muted-foreground ml-2 truncate">
               {hoveredElement.textContent.slice(0, 50)}...
@@ -535,6 +634,7 @@ export function SelectAndEdit({
         </div>
       )}
 
+      {/* History Panel */}
       {editHistory.length > 0 && (
         <Popover>
           <PopoverTrigger asChild>

@@ -101,12 +101,14 @@ function filesToFileSystemTree(files: ProjectFile[]): FileSystemTree {
       const isLast = i === parts.length - 1;
 
       if (isLast) {
+        // It's a file
         current[part] = {
           file: {
             contents: file.content
           }
         };
       } else {
+        // It's a directory
         if (!current[part]) {
           current[part] = {
             directory: {}
@@ -125,6 +127,9 @@ function filesToFileSystemTree(files: ProjectFile[]): FileSystemTree {
 
 /**
  * WebContainerPreview Component
+ *
+ * Provides browser-native Node.js execution for instant code preview.
+ * Similar to Bolt.new's WebContainers implementation.
  */
 export function WebContainerPreview({
   files,
@@ -146,10 +151,14 @@ export function WebContainerPreview({
 
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll terminal
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [terminalOutput]);
 
+  /**
+   * Add line to terminal output
+   */
   const addTerminalLine = useCallback((type: TerminalLine['type'], content: string) => {
     setTerminalOutput(prev => [...prev, {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -159,6 +168,9 @@ export function WebContainerPreview({
     }]);
   }, []);
 
+  /**
+   * Start the WebContainer and run the project
+   */
   const startPreview = useCallback(async () => {
     if (files.length === 0) {
       toast.error('No files to preview');
@@ -166,6 +178,7 @@ export function WebContainerPreview({
     }
 
     try {
+      // Reset state
       setStatus('booting');
       setPreviewUrl(null);
       setTerminalOutput([]);
@@ -173,28 +186,34 @@ export function WebContainerPreview({
 
       addTerminalLine('system', '🚀 Booting WebContainer...');
 
+      // Boot WebContainer
       const webcontainer = await getWebContainer();
       webcontainerRef.current = webcontainer;
 
       setStatus('mounting');
       addTerminalLine('system', '📁 Mounting project files...');
 
+      // Convert files and mount
       const fileSystemTree = filesToFileSystemTree(files);
       await webcontainer.mount(fileSystemTree);
 
       addTerminalLine('system', `✓ Mounted ${files.length} files`);
 
+      // Check if package.json exists
       const hasPackageJson = files.some(f => f.name === 'package.json');
 
       if (hasPackageJson) {
         setStatus('installing');
         addTerminalLine('system', '📦 Installing dependencies...');
 
+        // Run npm install
         const installProcess = await webcontainer.spawn('npm', ['install']);
 
+        // Stream install output
         installProcess.output.pipeTo(new WritableStream({
           write(data) {
             addTerminalLine('stdout', data);
+            // Estimate progress based on output
             setInstallProgress(prev => Math.min(prev + 5, 90));
           }
         }));
@@ -208,9 +227,11 @@ export function WebContainerPreview({
 
         addTerminalLine('system', '✓ Dependencies installed');
 
+        // Start dev server
         setStatus('starting');
         addTerminalLine('system', '🌐 Starting development server...');
 
+        // Listen for server-ready event
         webcontainer.on('server-ready', (port, url) => {
           setPreviewUrl(url);
           setStatus('ready');
@@ -219,6 +240,7 @@ export function WebContainerPreview({
           toast.success('Preview ready!');
         });
 
+        // Start the dev server
         const devProcess = await webcontainer.spawn('npm', ['run', 'dev']);
 
         devProcess.output.pipeTo(new WritableStream({
@@ -228,14 +250,17 @@ export function WebContainerPreview({
         }));
 
       } else {
+        // No package.json - try to serve static files
         setStatus('ready');
         addTerminalLine('system', '📄 Serving static files...');
 
+        // For static HTML files, we can use a simple approach
         const indexHtml = files.find(f =>
           f.name === 'index.html' || f.name.endsWith('/index.html')
         );
 
         if (indexHtml) {
+          // Create a blob URL for static preview
           const blob = new Blob([indexHtml.content], { type: 'text/html' });
           const url = URL.createObjectURL(blob);
           setPreviewUrl(url);
@@ -254,8 +279,12 @@ export function WebContainerPreview({
     }
   }, [files, addTerminalLine, onPreviewReady, onError]);
 
+  /**
+   * Restart the preview
+   */
   const restartPreview = useCallback(async () => {
     if (webcontainerRef.current) {
+      // Teardown and restart
       await webcontainerRef.current.teardown();
       webcontainerInstance = null;
       webcontainerPromise = null;
@@ -263,6 +292,9 @@ export function WebContainerPreview({
     await startPreview();
   }, [startPreview]);
 
+  /**
+   * Copy preview URL to clipboard
+   */
   const copyPreviewUrl = useCallback(() => {
     if (previewUrl) {
       navigator.clipboard.writeText(previewUrl);
@@ -270,18 +302,23 @@ export function WebContainerPreview({
     }
   }, [previewUrl]);
 
+  /**
+   * Open preview in new tab
+   */
   const openInNewTab = useCallback(() => {
     if (previewUrl) {
       window.open(previewUrl, '_blank');
     }
   }, [previewUrl]);
 
+  // Auto-start on mount if enabled
   useEffect(() => {
     if (autoStart && files.length > 0) {
       startPreview();
     }
-  }, [autoStart]);
+  }, [autoStart]); // Only run on mount, not on file changes
 
+  // Status indicator
   const StatusIndicator = useMemo(() => {
     const statusConfig = {
       idle: { icon: Play, color: 'bg-gray-500', text: 'Ready to start' },
@@ -311,6 +348,7 @@ export function WebContainerPreview({
       isFullscreen && 'fixed inset-0 z-50',
       className
     )}>
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50">
         <div className="flex items-center gap-3">
           {StatusIndicator}
@@ -362,6 +400,7 @@ export function WebContainerPreview({
         </div>
       </div>
 
+      {/* Content */}
       {showTerminal ? (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'terminal')}>
           <TabsList className="mx-4 mt-2">
