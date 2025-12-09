@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
-import { CreditCard, Calendar, Download, Check, Sparkles, Loader2, ExternalLink } from 'lucide-react';
+import { CreditCard, Calendar, Download, Check, Sparkles, Loader2, ExternalLink, AlertCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -26,11 +26,87 @@ export default function Billing() {
   const fetchInvoices = async () => {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/billing/invoices`);
-      setInvoices(response.data);
+      setInvoices(response.data || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
+      // Ne pas afficher d'erreur si l'utilisateur n'a simplement pas de factures
+      if (error.response?.status !== 404) {
+        toast.error('Impossible de charger les factures', {
+          description: 'Rafraîchissez la page pour réessayer.'
+        });
+      }
+      setInvoices([]);
     } finally {
       setLoadingInvoices(false);
+    }
+  };
+
+  /**
+   * Gère les erreurs Stripe avec des messages utilisateur clairs
+   */
+  const handleStripeError = (error, context = 'paiement') => {
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail;
+
+    // Log pour debug (sans données sensibles)
+    console.error(`Erreur ${context}:`, { status, detail });
+
+    switch (status) {
+      case 400:
+        // Déjà abonné ou requête invalide
+        if (detail?.includes('abonnement actif')) {
+          toast.error('Vous avez déjà un abonnement actif', {
+            description: 'Gérez votre abonnement depuis le portail client.',
+            action: {
+              label: 'Gérer',
+              onClick: () => handleManageSubscription()
+            }
+          });
+        } else if (detail?.includes('carte')) {
+          toast.error('Carte refusée', {
+            description: 'Veuillez vérifier vos informations de paiement.',
+            icon: <AlertCircle className="w-5 h-5 text-red-500" />
+          });
+        } else {
+          toast.error(detail || 'Requête invalide');
+        }
+        break;
+
+      case 404:
+        toast.error('Compte non trouvé', {
+          description: 'Veuillez vous reconnecter et réessayer.'
+        });
+        break;
+
+      case 429:
+        toast.error('Trop de tentatives', {
+          description: 'Veuillez patienter quelques instants avant de réessayer.',
+          icon: <RefreshCw className="w-5 h-5 text-yellow-500" />
+        });
+        break;
+
+      case 503:
+        toast.error('Système de paiement indisponible', {
+          description: 'Notre service de paiement est temporairement indisponible. Réessayez dans quelques minutes.',
+          icon: <AlertCircle className="w-5 h-5 text-orange-500" />,
+          duration: 8000
+        });
+        break;
+
+      default:
+        if (!navigator.onLine) {
+          toast.error('Pas de connexion internet', {
+            description: 'Vérifiez votre connexion et réessayez.'
+          });
+        } else {
+          toast.error(detail || 'Une erreur est survenue', {
+            description: 'Si le problème persiste, contactez le support.',
+            action: {
+              label: 'Support',
+              onClick: () => window.open('/support', '_blank')
+            }
+          });
+        }
     }
   };
 
@@ -38,10 +114,15 @@ export default function Billing() {
     setLoading(true);
     try {
       const response = await axios.post(`${BACKEND_URL}/api/billing/create-checkout-session`);
-      window.location.href = response.data.url;
+
+      if (response.data?.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.url;
+      } else {
+        throw new Error('URL de paiement non reçue');
+      }
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast.error(error.response?.data?.detail || 'Erreur lors de la création de la session de paiement');
+      handleStripeError(error, 'abonnement');
       setLoading(false);
     }
   };
@@ -50,10 +131,14 @@ export default function Billing() {
     setLoading(true);
     try {
       const response = await axios.post(`${BACKEND_URL}/api/billing/create-portal-session`);
-      window.location.href = response.data.url;
+
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      } else {
+        throw new Error('URL du portail non reçue');
+      }
     } catch (error) {
-      console.error('Error creating portal session:', error);
-      toast.error('Erreur lors de l\'accès au portail de gestion');
+      handleStripeError(error, 'portail');
       setLoading(false);
     }
   };

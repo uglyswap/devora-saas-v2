@@ -1,8 +1,38 @@
 import React, { useState } from "react";
-import { Sparkles, ShoppingCart, Users, BarChart3, MessageSquare, Calendar, FileText, Palette, Rocket, Check, ArrowRight } from "lucide-react";
+import { Sparkles, ShoppingCart, Users, BarChart3, MessageSquare, Calendar, FileText, Palette, Rocket, Check, ArrowRight, Zap, CreditCard, Layout, Globe } from "lucide-react";
 import { Button } from "../ui/button";
 
 const SAAS_TEMPLATES = [
+  {
+    id: "saas-starter",
+    name: "SaaS Starter Kit",
+    description: "Template SaaS complet style SaaSfly: auth, billing Stripe, dashboard, landing page",
+    icon: Rocket,
+    color: "from-emerald-500 to-teal-500",
+    tags: ["Next.js", "Stripe", "Supabase", "Tailwind"],
+    features: ["Landing page moderne", "Auth (Google, Email)", "Billing Stripe", "Dashboard utilisateur", "Admin panel", "Dark mode"],
+    priority: true
+  },
+  {
+    id: "saas-ai",
+    name: "AI SaaS Platform",
+    description: "SaaS avec integration IA: OpenAI, credits systeme, generation de contenu",
+    icon: Zap,
+    color: "from-violet-500 to-purple-600",
+    tags: ["OpenAI", "Stripe", "Credits", "Next.js"],
+    features: ["Integration OpenAI", "Systeme de credits", "Historique generations", "Plans tarifaires", "API Rate limiting"],
+    priority: true
+  },
+  {
+    id: "subscription-saas",
+    name: "Subscription Platform",
+    description: "Plateforme d'abonnement complete: plans, facturation, portail client",
+    icon: CreditCard,
+    color: "from-blue-500 to-indigo-600",
+    tags: ["Stripe Billing", "Webhooks", "Portal"],
+    features: ["Plans mensuels/annuels", "Portail client Stripe", "Webhooks", "Factures PDF", "Metriques MRR"],
+    priority: true
+  },
   {
     id: "ecommerce",
     name: "E-Commerce Pro",
@@ -31,6 +61,15 @@ const SAAS_TEMPLATES = [
     features: ["Graphiques", "KPIs", "Export CSV", "Alertes"]
   },
   {
+    id: "landing-page",
+    name: "Landing Page Pro",
+    description: "Landing page moderne avec sections hero, features, pricing, testimonials",
+    icon: Layout,
+    color: "from-pink-500 to-rose-500",
+    tags: ["Tailwind", "Framer Motion", "SEO"],
+    features: ["Hero section", "Features grid", "Pricing table", "Testimonials", "CTA sections", "Responsive"]
+  },
+  {
     id: "chat",
     name: "Chat App",
     description: "Application de messagerie temps reel avec channels",
@@ -56,6 +95,15 @@ const SAAS_TEMPLATES = [
     color: "from-yellow-500 to-amber-500",
     tags: ["MDX", "SEO", "Auth"],
     features: ["Editeur WYSIWYG", "Categories", "SEO", "Commentaires"]
+  },
+  {
+    id: "portfolio",
+    name: "Portfolio Pro",
+    description: "Portfolio moderne pour developpeurs et designers",
+    icon: Globe,
+    color: "from-gray-600 to-gray-800",
+    tags: ["Framer Motion", "MDX", "Responsive"],
+    features: ["Projets showcase", "Blog integre", "Contact form", "Analytics", "Dark mode"]
   }
 ];
 
