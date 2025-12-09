@@ -1,0 +1,428 @@
+{
+  "common": {
+    "appName": "Devora",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "retry": "Reintentar",
+    "logout": "Cerrar sesión",
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "welcome": "Bienvenido",
+    "hello": "Hola",
+    "yes": "Sí",
+    "no": "No",
+    "or": "o",
+    "and": "y"
+  },
+
+  "navigation": {
+    "home": "Inicio",
+    "dashboard": "Panel de control",
+    "editor": "Editor",
+    "templates": "Plantillas",
+    "settings": "Configuración",
+    "billing": "Facturación",
+    "support": "Soporte",
+    "admin": "Panel de administración",
+    "profile": "Perfil",
+    "menu": "Menú",
+    "skipToMain": "Saltar al contenido principal"
+  },
+
+  "auth": {
+    "login": {
+      "title": "Iniciar sesión en Devora",
+      "subtitle": "¡Bienvenido de nuevo! Por favor ingrese sus credenciales",
+      "email": "Dirección de correo electrónico",
+      "emailPlaceholder": "Ingrese su correo electrónico",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Ingrese su contraseña",
+      "rememberMe": "Recordarme",
+      "forgotPassword": "¿Olvidó su contraseña?",
+      "loginButton": "Iniciar sesión",
+      "noAccount": "¿No tiene una cuenta?",
+      "registerLink": "Regístrese ahora",
+      "errorInvalidCredentials": "Correo electrónico o contraseña inválidos",
+      "errorGeneric": "Ocurrió un error. Por favor intente de nuevo."
+    },
+
+    "register": {
+      "title": "Crear su cuenta",
+      "subtitle": "Únase a Devora y comience a crear aplicaciones web increíbles",
+      "name": "Nombre completo",
+      "namePlaceholder": "Ingrese su nombre completo",
+      "email": "Dirección de correo electrónico",
+      "emailPlaceholder": "Ingrese su correo electrónico",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Cree una contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "confirmPasswordPlaceholder": "Vuelva a ingresar su contraseña",
+      "termsAgree": "Acepto los",
+      "termsLink": "Términos de servicio",
+      "privacyLink": "Política de privacidad",
+      "registerButton": "Crear cuenta",
+      "hasAccount": "¿Ya tiene una cuenta?",
+      "loginLink": "Iniciar sesión",
+      "errorPasswordMismatch": "Las contraseñas no coinciden",
+      "errorWeakPassword": "La contraseña debe tener al menos 8 caracteres, con 1 letra mayúscula y 1 número",
+      "errorEmailExists": "Ya existe una cuenta con este correo electrónico",
+      "successRegistration": "¡Cuenta creada exitosamente! Por favor revise su correo electrónico para verificar."
+    },
+
+    "validation": {
+      "emailRequired": "El correo electrónico es obligatorio",
+      "emailInvalid": "Por favor ingrese una dirección de correo electrónico válida",
+      "passwordRequired": "La contraseña es obligatoria",
+      "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "nameRequired": "El nombre es obligatorio",
+      "fieldRequired": "Este campo es obligatorio"
+    }
+  },
+
+  "dashboard": {
+    "title": "Panel de control",
+    "welcome": "Bienvenido de nuevo, {{name}}",
+    "quickActions": "Acciones rápidas",
+    "recentProjects": "Proyectos recientes",
+    "statistics": "Estadísticas",
+    "newProject": "Nuevo proyecto",
+    "viewAll": "Ver todo",
+    "noProjects": "Aún no hay proyectos",
+    "createFirst": "Cree su primer proyecto para comenzar",
+
+    "stats": {
+      "totalProjects": "Total de proyectos",
+      "activeProjects": "Proyectos activos",
+      "deployments": "Implementaciones",
+      "storage": "Almacenamiento usado"
+    },
+
+    "actions": {
+      "createApp": "Crear nueva aplicación",
+      "browseTemplates": "Explorar plantillas",
+      "viewDocs": "Ver documentación",
+      "contactSupport": "Contactar soporte"
+    }
+  },
+
+  "editor": {
+    "title": "Editor de aplicaciones web",
+    "tabs": {
+      "code": "Código",
+      "preview": "Vista previa",
+      "console": "Consola",
+      "settings": "Configuración"
+    },
+
+    "toolbar": {
+      "save": "Guardar",
+      "undo": "Deshacer",
+      "redo": "Rehacer",
+      "format": "Formatear código",
+      "run": "Ejecutar",
+      "deploy": "Implementar",
+      "share": "Compartir",
+      "settings": "Configuración"
+    },
+
+    "sidebar": {
+      "files": "Archivos",
+      "components": "Componentes",
+      "assets": "Recursos",
+      "dependencies": "Dependencias"
+    },
+
+    "files": {
+      "newFile": "Nuevo archivo",
+      "newFolder": "Nueva carpeta",
+      "rename": "Renombrar",
+      "delete": "Eliminar",
+      "upload": "Subir",
+      "download": "Descargar"
+    },
+
+    "messages": {
+      "savingProject": "Guardando proyecto...",
+      "projectSaved": "Proyecto guardado exitosamente",
+      "errorSaving": "Error al guardar el proyecto",
+      "deployingProject": "Implementando proyecto...",
+      "projectDeployed": "Proyecto implementado exitosamente",
+      "errorDeploying": "Error al implementar el proyecto"
+    }
+  },
+
+  "templates": {
+    "title": "Galería de plantillas",
+    "subtitle": "Elija una plantilla para iniciar su proyecto",
+    "categories": {
+      "all": "Todas las plantillas",
+      "landing": "Páginas de aterrizaje",
+      "dashboard": "Paneles de control",
+      "ecommerce": "Comercio electrónico",
+      "portfolio": "Portafolios",
+      "blog": "Blogs",
+      "saas": "Aplicaciones SaaS"
+    },
+
+    "filter": {
+      "search": "Buscar plantillas...",
+      "sortBy": "Ordenar por",
+      "popular": "Más populares",
+      "newest": "Más recientes",
+      "name": "Nombre"
+    },
+
+    "card": {
+      "preview": "Vista previa",
+      "useTemplate": "Usar plantilla",
+      "details": "Ver detalles",
+      "free": "Gratis",
+      "premium": "Premium"
+    }
+  },
+
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Administre su cuenta y preferencias",
+
+    "tabs": {
+      "profile": "Perfil",
+      "account": "Cuenta",
+      "preferences": "Preferencias",
+      "security": "Seguridad",
+      "notifications": "Notificaciones",
+      "billing": "Facturación"
+    },
+
+    "profile": {
+      "title": "Información del perfil",
+      "name": "Nombre completo",
+      "email": "Dirección de correo electrónico",
+      "bio": "Biografía",
+      "avatar": "Foto de perfil",
+      "changeAvatar": "Cambiar foto",
+      "updateProfile": "Actualizar perfil",
+      "profileUpdated": "Perfil actualizado exitosamente"
+    },
+
+    "preferences": {
+      "title": "Preferencias",
+      "language": "Idioma",
+      "theme": "Tema",
+      "themeLight": "Claro",
+      "themeDark": "Oscuro",
+      "themeAuto": "Automático (Sistema)",
+      "timezone": "Zona horaria",
+      "dateFormat": "Formato de fecha",
+      "reducedMotion": "Reducir movimiento",
+      "reducedMotionHelp": "Minimizar animaciones y transiciones para mejor accesibilidad"
+    },
+
+    "security": {
+      "title": "Configuración de seguridad",
+      "changePassword": "Cambiar contraseña",
+      "currentPassword": "Contraseña actual",
+      "newPassword": "Nueva contraseña",
+      "confirmNewPassword": "Confirmar nueva contraseña",
+      "updatePassword": "Actualizar contraseña",
+      "passwordUpdated": "Contraseña actualizada exitosamente",
+      "twoFactor": "Autenticación de dos factores",
+      "twoFactorEnable": "Activar 2FA",
+      "twoFactorDisable": "Desactivar 2FA",
+      "sessions": "Sesiones activas",
+      "revokeSession": "Revocar sesión"
+    },
+
+    "notifications": {
+      "title": "Preferencias de notificación",
+      "emailNotifications": "Notificaciones por correo electrónico",
+      "projectUpdates": "Actualizaciones de proyecto",
+      "deploymentStatus": "Estado de implementación",
+      "securityAlerts": "Alertas de seguridad",
+      "marketing": "Marketing y actualizaciones",
+      "pushNotifications": "Notificaciones push"
+    }
+  },
+
+  "billing": {
+    "title": "Facturación y suscripción",
+    "currentPlan": "Plan actual",
+    "planFree": "Gratis",
+    "planPro": "Pro",
+    "planEnterprise": "Empresa",
+
+    "usage": {
+      "title": "Uso actual",
+      "projects": "Proyectos",
+      "storage": "Almacenamiento",
+      "bandwidth": "Ancho de banda",
+      "deployments": "Implementaciones"
+    },
+
+    "plans": {
+      "title": "Elija su plan",
+      "monthly": "Mensual",
+      "yearly": "Anual",
+      "save": "Ahorre {{percent}}%",
+      "currentPlan": "Plan actual",
+      "upgrade": "Mejorar",
+      "downgrade": "Degradar",
+      "selectPlan": "Seleccionar plan"
+    },
+
+    "features": {
+      "unlimited": "Ilimitado",
+      "projects": "{{count}} Proyectos",
+      "storage": "{{size}} Almacenamiento",
+      "bandwidth": "{{size}} Ancho de banda",
+      "customDomain": "Dominio personalizado",
+      "ssl": "Certificado SSL",
+      "support": "Soporte {{level}}",
+      "analytics": "Análisis avanzado"
+    },
+
+    "payment": {
+      "title": "Método de pago",
+      "addCard": "Agregar método de pago",
+      "updateCard": "Actualizar método de pago",
+      "cardEnding": "Tarjeta terminada en {{last4}}",
+      "expiresOn": "Vence el {{date}}"
+    }
+  },
+
+  "support": {
+    "title": "Centro de soporte",
+    "subtitle": "Obtenga ayuda y encuentre respuestas",
+
+    "contact": {
+      "title": "Contactar soporte",
+      "name": "Su nombre",
+      "email": "Dirección de correo electrónico",
+      "subject": "Asunto",
+      "message": "Mensaje",
+      "attachments": "Archivos adjuntos",
+      "send": "Enviar mensaje",
+      "messageSent": "¡Su mensaje ha sido enviado. Le responderemos pronto!"
+    },
+
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "search": "Buscar en las preguntas frecuentes..."
+    },
+
+    "docs": {
+      "title": "Documentación",
+      "gettingStarted": "Primeros pasos",
+      "tutorials": "Tutoriales",
+      "apiReference": "Referencia API",
+      "examples": "Ejemplos"
+    }
+  },
+
+  "admin": {
+    "title": "Panel de administración",
+    "users": "Usuarios",
+    "projects": "Proyectos",
+    "analytics": "Análisis",
+    "settings": "Configuración del sistema",
+
+    "usersManagement": {
+      "title": "Gestión de usuarios",
+      "totalUsers": "Total de usuarios",
+      "activeUsers": "Usuarios activos",
+      "search": "Buscar usuarios...",
+      "viewUser": "Ver usuario",
+      "editUser": "Editar usuario",
+      "deleteUser": "Eliminar usuario",
+      "suspendUser": "Suspender usuario"
+    }
+  },
+
+  "errors": {
+    "404": {
+      "title": "Página no encontrada",
+      "message": "La página que está buscando no existe.",
+      "action": "Ir al panel de control"
+    },
+
+    "500": {
+      "title": "Error del servidor",
+      "message": "Algo salió mal de nuestra parte. Por favor intente de nuevo más tarde.",
+      "action": "Recargar página"
+    },
+
+    "403": {
+      "title": "Acceso denegado",
+      "message": "No tiene permiso para acceder a este recurso.",
+      "action": "Volver"
+    },
+
+    "network": {
+      "title": "Error de red",
+      "message": "No se puede conectar al servidor. Por favor verifique su conexión a Internet.",
+      "action": "Reintentar"
+    }
+  },
+
+  "footer": {
+    "company": "Empresa",
+    "about": "Acerca de",
+    "careers": "Carreras",
+    "blog": "Blog",
+    "contact": "Contacto",
+
+    "product": "Producto",
+    "features": "Características",
+    "pricing": "Precios",
+    "documentation": "Documentación",
+    "changelog": "Registro de cambios",
+
+    "legal": "Legal",
+    "terms": "Términos de servicio",
+    "privacy": "Política de privacidad",
+    "cookies": "Política de cookies",
+
+    "social": "Síguenos",
+    "copyright": "© {{year}} Devora. Todos los derechos reservados."
+  },
+
+  "cookies": {
+    "message": "Usamos cookies para mejorar su experiencia. Al continuar visitando este sitio, acepta nuestro uso de cookies.",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "learnMore": "Más información"
+  },
+
+  "accessibility": {
+    "skipToMain": "Saltar al contenido principal",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "openDialog": "Abrir diálogo",
+    "closeDialog": "Cerrar diálogo",
+    "loading": "Cargando",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "required": "Campo obligatorio",
+    "optional": "Campo opcional",
+    "sortAscending": "Ordenar ascendente",
+    "sortDescending": "Ordenar descendente",
+    "currentPage": "Página actual",
+    "pageOf": "Página {{current}} de {{total}}"
+  }
+}

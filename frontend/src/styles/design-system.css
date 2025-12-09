@@ -1,0 +1,480 @@
+/**
+ * DEVORA DESIGN SYSTEM
+ *
+ * Un système de design cohérent et performant pour Devora
+ * Optimisé pour dark mode avec support light mode
+ *
+ * @version 1.0.0
+ * @author Frontend Squad - Agent UI/UX Designer
+ */
+
+/* ============================================
+   COLOR TOKENS
+   ============================================ */
+
+:root {
+  /* Brand Colors */
+  --devora-primary-50: hsl(142, 76%, 96%);
+  --devora-primary-100: hsl(142, 76%, 90%);
+  --devora-primary-200: hsl(142, 76%, 80%);
+  --devora-primary-300: hsl(142, 76%, 60%);
+  --devora-primary-400: hsl(142, 76%, 48%);
+  --devora-primary-500: hsl(142, 76%, 36%); /* Main brand color */
+  --devora-primary-600: hsl(142, 76%, 28%);
+  --devora-primary-700: hsl(142, 76%, 20%);
+  --devora-primary-800: hsl(142, 76%, 12%);
+  --devora-primary-900: hsl(142, 76%, 6%);
+
+  /* Accent Colors */
+  --devora-accent-purple: hsl(270, 95%, 70%);
+  --devora-accent-blue: hsl(217, 91%, 60%);
+  --devora-accent-pink: hsl(330, 86%, 70%);
+  --devora-accent-yellow: hsl(45, 100%, 60%);
+
+  /* Semantic Colors - Dark Mode (Default) */
+  --devora-bg-primary: hsl(222, 20%, 5%);     /* #0a0a0b */
+  --devora-bg-secondary: hsl(225, 15%, 8%);   /* #111113 */
+  --devora-bg-tertiary: hsl(220, 18%, 11%);   /* #1a1a1d */
+  --devora-bg-elevated: hsl(218, 16%, 14%);   /* #1f2023 */
+  --devora-bg-overlay: hsla(0, 0%, 0%, 0.8);
+
+  --devora-text-primary: hsl(210, 40%, 98%);
+  --devora-text-secondary: hsl(215, 20%, 85%);
+  --devora-text-tertiary: hsl(215, 15%, 65%);
+  --devora-text-disabled: hsl(215, 10%, 45%);
+
+  --devora-border-subtle: hsla(0, 0%, 100%, 0.05);
+  --devora-border-medium: hsla(0, 0%, 100%, 0.1);
+  --devora-border-strong: hsla(0, 0%, 100%, 0.15);
+
+  /* Status Colors */
+  --devora-success: hsl(142, 76%, 36%);
+  --devora-success-bg: hsla(142, 76%, 36%, 0.1);
+  --devora-success-border: hsla(142, 76%, 36%, 0.3);
+
+  --devora-error: hsl(0, 84%, 60%);
+  --devora-error-bg: hsla(0, 84%, 60%, 0.1);
+  --devora-error-border: hsla(0, 84%, 60%, 0.3);
+
+  --devora-warning: hsl(38, 92%, 50%);
+  --devora-warning-bg: hsla(38, 92%, 50%, 0.1);
+  --devora-warning-border: hsla(38, 92%, 50%, 0.3);
+
+  --devora-info: hsl(217, 91%, 60%);
+  --devora-info-bg: hsla(217, 91%, 60%, 0.1);
+  --devora-info-border: hsla(217, 91%, 60%, 0.3);
+
+  /* ============================================
+     SPACING TOKENS
+     ============================================ */
+
+  --devora-space-0: 0;
+  --devora-space-1: 0.25rem;   /* 4px */
+  --devora-space-2: 0.5rem;    /* 8px */
+  --devora-space-3: 0.75rem;   /* 12px */
+  --devora-space-4: 1rem;      /* 16px */
+  --devora-space-5: 1.25rem;   /* 20px */
+  --devora-space-6: 1.5rem;    /* 24px */
+  --devora-space-8: 2rem;      /* 32px */
+  --devora-space-10: 2.5rem;   /* 40px */
+  --devora-space-12: 3rem;     /* 48px */
+  --devora-space-16: 4rem;     /* 64px */
+  --devora-space-20: 5rem;     /* 80px */
+  --devora-space-24: 6rem;     /* 96px */
+
+  /* ============================================
+     TYPOGRAPHY TOKENS
+     ============================================ */
+
+  /* Font Families */
+  --devora-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --devora-font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+
+  /* Font Sizes */
+  --devora-text-xs: 0.75rem;      /* 12px */
+  --devora-text-sm: 0.875rem;     /* 14px */
+  --devora-text-base: 1rem;       /* 16px */
+  --devora-text-lg: 1.125rem;     /* 18px */
+  --devora-text-xl: 1.25rem;      /* 20px */
+  --devora-text-2xl: 1.5rem;      /* 24px */
+  --devora-text-3xl: 1.875rem;    /* 30px */
+  --devora-text-4xl: 2.25rem;     /* 36px */
+  --devora-text-5xl: 3rem;        /* 48px */
+
+  /* Font Weights */
+  --devora-font-normal: 400;
+  --devora-font-medium: 500;
+  --devora-font-semibold: 600;
+  --devora-font-bold: 700;
+
+  /* Line Heights */
+  --devora-leading-tight: 1.25;
+  --devora-leading-normal: 1.5;
+  --devora-leading-relaxed: 1.75;
+
+  /* ============================================
+     SHADOW TOKENS
+     ============================================ */
+
+  --devora-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --devora-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --devora-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+  --devora-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+  --devora-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+
+  /* Glow Effects */
+  --devora-glow-primary: 0 0 20px rgba(34, 197, 94, 0.3);
+  --devora-glow-accent: 0 0 20px rgba(139, 92, 246, 0.3);
+
+  /* ============================================
+     BORDER RADIUS TOKENS
+     ============================================ */
+
+  --devora-radius-none: 0;
+  --devora-radius-sm: 0.25rem;   /* 4px */
+  --devora-radius-md: 0.375rem;  /* 6px */
+  --devora-radius-lg: 0.5rem;    /* 8px */
+  --devora-radius-xl: 0.75rem;   /* 12px */
+  --devora-radius-2xl: 1rem;     /* 16px */
+  --devora-radius-full: 9999px;
+
+  /* ============================================
+     ANIMATION TOKENS
+     ============================================ */
+
+  /* Durations */
+  --devora-duration-instant: 0ms;
+  --devora-duration-fast: 150ms;
+  --devora-duration-base: 250ms;
+  --devora-duration-slow: 400ms;
+  --devora-duration-slower: 600ms;
+
+  /* Timing Functions */
+  --devora-ease-linear: linear;
+  --devora-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --devora-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --devora-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --devora-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ============================================
+     Z-INDEX TOKENS
+     ============================================ */
+
+  --devora-z-base: 0;
+  --devora-z-dropdown: 1000;
+  --devora-z-sticky: 1100;
+  --devora-z-fixed: 1200;
+  --devora-z-modal-backdrop: 1300;
+  --devora-z-modal: 1400;
+  --devora-z-popover: 1500;
+  --devora-z-tooltip: 1600;
+  --devora-z-toast: 1700;
+}
+
+/* ============================================
+   LIGHT MODE OVERRIDE
+   ============================================ */
+
+[data-theme="light"] {
+  /* Background Colors */
+  --devora-bg-primary: hsl(0, 0%, 100%);
+  --devora-bg-secondary: hsl(0, 0%, 98%);
+  --devora-bg-tertiary: hsl(0, 0%, 95%);
+  --devora-bg-elevated: hsl(0, 0%, 100%);
+  --devora-bg-overlay: hsla(0, 0%, 0%, 0.5);
+
+  /* Text Colors */
+  --devora-text-primary: hsl(222, 47%, 11%);
+  --devora-text-secondary: hsl(215, 16%, 25%);
+  --devora-text-tertiary: hsl(215, 13%, 45%);
+  --devora-text-disabled: hsl(215, 10%, 65%);
+
+  /* Border Colors */
+  --devora-border-subtle: hsla(0, 0%, 0%, 0.05);
+  --devora-border-medium: hsla(0, 0%, 0%, 0.1);
+  --devora-border-strong: hsla(0, 0%, 0%, 0.2);
+
+  /* Shadows */
+  --devora-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --devora-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --devora-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --devora-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --devora-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Gradients */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--devora-primary-500) 0%, var(--devora-primary-600) 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, var(--devora-accent-purple) 0%, var(--devora-accent-blue) 100%);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, var(--devora-primary-400) 0%, var(--devora-accent-blue) 100%);
+}
+
+.gradient-dark {
+  background: linear-gradient(135deg, var(--devora-bg-primary) 0%, var(--devora-bg-tertiary) 100%);
+}
+
+/* Glass Morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Text Gradients */
+.text-gradient-primary {
+  background: linear-gradient(135deg, var(--devora-primary-400) 0%, var(--devora-accent-blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, var(--devora-accent-purple) 0%, var(--devora-accent-pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth Transitions */
+.transition-smooth {
+  transition: all var(--devora-duration-base) var(--devora-ease-out);
+}
+
+.transition-fast {
+  transition: all var(--devora-duration-fast) var(--devora-ease-out);
+}
+
+.transition-bounce {
+  transition: all var(--devora-duration-base) var(--devora-ease-bounce);
+}
+
+/* Focus States */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--devora-primary-500);
+  outline-offset: 2px;
+}
+
+/* Hover Glow Effect */
+.hover-glow {
+  transition: box-shadow var(--devora-duration-base) var(--devora-ease-out);
+}
+
+.hover-glow:hover {
+  box-shadow: var(--devora-glow-primary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation Classes */
+.animate-fade-in {
+  animation: fadeIn var(--devora-duration-base) var(--devora-ease-out);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--devora-duration-base) var(--devora-ease-out);
+}
+
+.animate-slide-down {
+  animation: slideDown var(--devora-duration-base) var(--devora-ease-out);
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--devora-duration-base) var(--devora-ease-out);
+}
+
+.animate-pulse {
+  animation: pulse 2s var(--devora-ease-in-out) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* GPU Acceleration for transforms */
+.gpu-accelerate {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Contain paint for isolated rendering */
+.contain-paint {
+  contain: paint;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   COMPONENT PATTERNS
+   ============================================ */
+
+/* Card Pattern */
+.card-base {
+  background-color: var(--devora-bg-tertiary);
+  border: 1px solid var(--devora-border-medium);
+  border-radius: var(--devora-radius-xl);
+  padding: var(--devora-space-6);
+  box-shadow: var(--devora-shadow-md);
+}
+
+.card-hover {
+  transition: all var(--devora-duration-base) var(--devora-ease-out);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--devora-shadow-lg);
+  border-color: var(--devora-border-strong);
+}
+
+/* Button Pattern */
+.button-base {
+  font-family: var(--devora-font-sans);
+  font-size: var(--devora-text-sm);
+  font-weight: var(--devora-font-medium);
+  padding: var(--devora-space-2) var(--devora-space-4);
+  border-radius: var(--devora-radius-lg);
+  border: none;
+  cursor: pointer;
+  transition: all var(--devora-duration-fast) var(--devora-ease-out);
+  outline: none;
+}
+
+.button-base:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input Pattern */
+.input-base {
+  font-family: var(--devora-font-sans);
+  font-size: var(--devora-text-sm);
+  padding: var(--devora-space-2) var(--devora-space-3);
+  background-color: var(--devora-bg-secondary);
+  border: 1px solid var(--devora-border-medium);
+  border-radius: var(--devora-radius-lg);
+  color: var(--devora-text-primary);
+  transition: all var(--devora-duration-fast) var(--devora-ease-out);
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--devora-primary-500);
+  box-shadow: 0 0 0 3px var(--devora-success-bg);
+}
+
+/* Scrollbar Styling */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--devora-border-strong) var(--devora-bg-secondary);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--devora-bg-secondary);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--devora-border-strong);
+  border-radius: var(--devora-radius-full);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--devora-primary-500);
+}

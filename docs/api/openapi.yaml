@@ -1,0 +1,932 @@
+openapi: 3.0.3
+info:
+  title: Devora AI Code Generator API
+  description: |
+    **Devora** is an AI-powered code generation SaaS platform that transforms natural language descriptions into production-ready web applications.
+
+    ## Features
+    - Multi-agent AI orchestration for specialized code generation
+    - Full-stack Next.js 14+ application generation
+    - Real-time streaming progress via Server-Sent Events
+    - GitHub export and Vercel deployment integration
+    - Stripe payment processing
+    - Persistent memory with Memori SDK
+
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the `Authorization` header:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+
+    ## Base URL
+    - Development: `http://localhost:8000`
+    - Production: `https://api.devora.ai`
+
+    ## Rate Limiting
+    - **Free Plan**: 10 requests/minute
+    - **Pro Plan**: 100 requests/minute
+    - **Enterprise**: Unlimited
+
+  version: 3.0.0
+  contact:
+    name: Devora Support
+    email: support@devora.ai
+    url: https://devora.ai/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.devora.ai
+    description: Production server
+
+tags:
+  - name: Health
+    description: System health and status
+  - name: Settings
+    description: User settings and API key management
+  - name: Projects
+    description: Project CRUD operations
+  - name: Conversations
+    description: Chat history management
+  - name: Generation
+    description: AI code generation endpoints
+  - name: Templates
+    description: Project templates
+  - name: GitHub
+    description: GitHub integration and export
+  - name: Vercel
+    description: Vercel deployment
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Billing
+    description: Stripe payment processing
+  - name: Admin
+    description: Admin panel operations
+
+paths:
+  /api/:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the status of the API server
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  version:
+                    type: string
+                    example: "3.0.0"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/settings:
+    get:
+      tags:
+        - Settings
+      summary: Get user settings
+      description: Retrieve the current user's settings including API keys (encrypted)
+      operationId: getSettings
+      responses:
+        '200':
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+
+    put:
+      tags:
+        - Settings
+      summary: Update user settings
+      description: Update API keys and integration tokens
+      operationId: updateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettingsUpdate'
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+
+  /api/projects:
+    get:
+      tags:
+        - Projects
+      summary: List all projects
+      description: Get all projects for the authenticated user
+      operationId: listProjects
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - Projects
+      summary: Create a new project
+      description: Create a new project with files and metadata
+      operationId: createProject
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '200':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/projects/{project_id}:
+    get:
+      tags:
+        - Projects
+      summary: Get a project by ID
+      description: Retrieve a specific project with all its files
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags:
+        - Projects
+      summary: Update a project
+      description: Update project metadata, files, or conversation history
+      operationId: updateProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags:
+        - Projects
+      summary: Delete a project
+      description: Permanently delete a project and all its files
+      operationId: deleteProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Project deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/openrouter/models:
+    get:
+      tags:
+        - Generation
+      summary: List available AI models
+      description: Get all available models from OpenRouter
+      operationId: listModels
+      parameters:
+        - name: api_key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: OpenRouter API key
+      responses:
+        '200':
+          description: Models retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AIModel'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/generate/openrouter:
+    post:
+      tags:
+        - Generation
+      summary: Simple code generation
+      description: Generate HTML/CSS/JS code using OpenRouter AI models
+      operationId: generateWithOpenRouter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenRouterRequest'
+            examples:
+              simpleLandingPage:
+                summary: Simple landing page
+                value:
+                  message: "Create a modern landing page with a hero section and contact form"
+                  model: "openai/gpt-4o"
+                  api_key: "sk-or-v1-..."
+                  conversation_history: []
+      responses:
+        '200':
+          description: Code generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedCode'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /api/generate/fullstack:
+    post:
+      tags:
+        - Generation
+      summary: Full-stack project generation
+      description: |
+        Generate a complete Next.js 14+ application with:
+        - Frontend pages and components
+        - Backend API routes
+        - Database schemas (Supabase)
+        - Authentication setup
+        - Payment integration (if SaaS)
+
+        Uses multi-agent orchestration for specialized generation.
+      operationId: generateFullstack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FullStackRequest'
+            examples:
+              saasApp:
+                summary: SaaS application
+                value:
+                  message: "Build a task management SaaS with user authentication, Stripe payments, and a dashboard to create and track tasks"
+                  model: "openai/gpt-4o"
+                  api_key: "sk-or-v1-..."
+                  project_type: "saas"
+                  conversation_history: []
+      responses:
+        '200':
+          description: Full-stack project generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FullStackResponse'
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/SSEEvent'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /api/templates:
+    get:
+      tags:
+        - Templates
+      summary: List available templates
+      description: Get all project templates (SaaS, E-commerce, Blog, etc.)
+      operationId: listTemplates
+      responses:
+        '200':
+          description: Templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+
+  /api/github/export:
+    post:
+      tags:
+        - GitHub
+      summary: Export project to GitHub
+      description: Create a new GitHub repository and push all project files
+      operationId: exportToGitHub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportGitHubRequest'
+      responses:
+        '200':
+          description: Project exported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repo_url:
+                    type: string
+                    example: "https://github.com/username/my-project"
+                  message:
+                    type: string
+                    example: "Project exported successfully"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /api/vercel/deploy:
+    post:
+      tags:
+        - Vercel
+      summary: Deploy project to Vercel
+      description: Deploy the project to Vercel for production hosting
+      operationId: deployToVercel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeployVercelRequest'
+      responses:
+        '200':
+          description: Project deployed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deployment_url:
+                    type: string
+                    example: "https://my-project-abc123.vercel.app"
+                  message:
+                    type: string
+                    example: "Deployment successful"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and return JWT token
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/stripe/checkout:
+    post:
+      tags:
+        - Billing
+      summary: Create Stripe checkout session
+      description: Create a Stripe checkout session for subscription
+      operationId: createCheckoutSession
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - plan
+              properties:
+                plan:
+                  type: string
+                  enum: [pro, enterprise]
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkout_url:
+                    type: string
+                    example: "https://checkout.stripe.com/pay/cs_test_..."
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/stripe/webhook:
+    post:
+      tags:
+        - Billing
+      summary: Handle Stripe webhooks
+      description: Process Stripe webhook events (internal use)
+      operationId: handleStripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed successfully
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ProjectId:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Unique project identifier
+
+  schemas:
+    UserSettings:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        openrouter_api_key:
+          type: string
+          nullable: true
+          description: Encrypted OpenRouter API key
+        github_token:
+          type: string
+          nullable: true
+          description: Encrypted GitHub personal access token
+        vercel_token:
+          type: string
+          nullable: true
+          description: Encrypted Vercel API token
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserSettingsUpdate:
+      type: object
+      properties:
+        openrouter_api_key:
+          type: string
+          nullable: true
+        github_token:
+          type: string
+          nullable: true
+        vercel_token:
+          type: string
+          nullable: true
+
+    ProjectFile:
+      type: object
+      required:
+        - name
+        - content
+        - language
+      properties:
+        name:
+          type: string
+          example: "app/page.tsx"
+        content:
+          type: string
+          example: "export default function Page() { return <div>Hello</div> }"
+        language:
+          type: string
+          enum: [typescript, javascript, html, css, markdown, json]
+
+    ConversationMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+
+    Project:
+      type: object
+      required:
+        - id
+        - name
+        - files
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "My SaaS App"
+        description:
+          type: string
+          nullable: true
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+        conversation_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+        project_type:
+          type: string
+          enum: [saas, ecommerce, blog, dashboard, api, landing]
+          nullable: true
+        github_repo_url:
+          type: string
+          nullable: true
+          example: "https://github.com/user/repo"
+        vercel_url:
+          type: string
+          nullable: true
+          example: "https://my-app.vercel.app"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+          default: []
+        project_type:
+          type: string
+          enum: [saas, ecommerce, blog, dashboard, api, landing]
+
+    AIModel:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "openai/gpt-4o"
+        name:
+          type: string
+          example: "GPT-4o"
+        description:
+          type: string
+        context_length:
+          type: integer
+          example: 128000
+        pricing:
+          type: object
+          properties:
+            prompt:
+              type: number
+              example: 0.0025
+            completion:
+              type: number
+              example: 0.01
+
+    OpenRouterRequest:
+      type: object
+      required:
+        - message
+        - model
+        - api_key
+      properties:
+        message:
+          type: string
+          example: "Create a landing page"
+        model:
+          type: string
+          example: "openai/gpt-4o"
+        api_key:
+          type: string
+        conversation_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+          default: []
+
+    FullStackRequest:
+      type: object
+      required:
+        - message
+        - model
+        - api_key
+      properties:
+        message:
+          type: string
+          example: "Build a SaaS for task management"
+        model:
+          type: string
+          example: "openai/gpt-4o"
+        api_key:
+          type: string
+        project_type:
+          type: string
+          enum: [saas, ecommerce, blog, dashboard, api]
+          default: saas
+        conversation_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+          default: []
+        current_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+          default: []
+        project_id:
+          type: string
+          format: uuid
+          nullable: true
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    GeneratedCode:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+        message:
+          type: string
+          example: "Code generated successfully"
+
+    FullStackResponse:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+        architecture:
+          type: object
+        review:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [APPROVE, ITERATE]
+            feedback:
+              type: array
+              items:
+                type: string
+            quality_score:
+              type: number
+              minimum: 0
+              maximum: 100
+
+    SSEEvent:
+      type: object
+      description: Server-Sent Event for streaming progress
+      properties:
+        event:
+          type: string
+          enum: [start, progress, agent_start, agent_complete, error, complete]
+        data:
+          type: object
+          properties:
+            stage:
+              type: string
+              example: "frontend"
+            percent:
+              type: integer
+              example: 60
+            message:
+              type: string
+
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "saas_starter"
+        name:
+          type: string
+          example: "SaaS Starter"
+        description:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        stack:
+          type: object
+
+    ExportGitHubRequest:
+      type: object
+      required:
+        - project_id
+        - repo_name
+        - github_token
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        repo_name:
+          type: string
+          example: "my-awesome-project"
+        github_token:
+          type: string
+        private:
+          type: boolean
+          default: false
+
+    DeployVercelRequest:
+      type: object
+      required:
+        - project_id
+        - vercel_token
+        - project_name
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        vercel_token:
+          type: string
+        project_name:
+          type: string
+          example: "my-app"
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        token_type:
+          type: string
+          example: "bearer"
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            plan:
+              type: string
+              enum: [free, pro, enterprise]
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: "Error message"
+
+  responses:
+    BadRequestError:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    UnauthorizedError:
+      description: Unauthorized - Invalid or missing token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: "Invalid authentication credentials"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: "Project not found"
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

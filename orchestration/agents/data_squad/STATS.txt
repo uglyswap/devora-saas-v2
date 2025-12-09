@@ -1,0 +1,18 @@
+# DATA SQUAD - STATISTICS
+
+## Files
+__init__.py - 4,8K
+analytics_engineer.py - 26K
+ARCHITECTURE.md - 18K
+database_architect.py - 22K
+README.md - 14K
+search_rag_specialist.py - 27K
+
+## Lines of Code
+   156 __init__.py
+   876 analytics_engineer.py
+   701 database_architect.py
+   915 search_rag_specialist.py
+   654 ARCHITECTURE.md
+   468 README.md
+  3770 total

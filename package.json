@@ -1,0 +1,80 @@
+{
+  "name": "devora-transformation",
+  "version": "2.0.0",
+  "description": "Devora - AI-powered web development platform",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm start",
+    "dev:backend": "cd backend && uvicorn server:app --reload --host 0.0.0.0 --port 8000",
+    "build": "cd frontend && npm run build",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:unit:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:backend": "cd backend && pytest",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd backend && flake8 . --max-line-length=120 --exclude=venv,__pycache__",
+    "format": "npm run format:frontend && npm run format:backend",
+    "format:frontend": "cd frontend && prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format:backend": "cd backend && black .",
+    "typecheck": "cd frontend && tsc --noEmit || echo 'No TypeScript config found'",
+    "prepare": "husky install || echo 'Husky not installed'",
+    "precommit": "lint-staged"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.0.4",
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "jsdom": "^23.0.1",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "vitest": "^1.0.4"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "backend/**/*.py": [
+      "black",
+      "flake8 --max-line-length=120"
+    ],
+    "**/*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/devora-transformation.git"
+  },
+  "keywords": [
+    "ai",
+    "code-generation",
+    "web-development",
+    "saas",
+    "no-code"
+  ],
+  "author": "Devora Team",
+  "license": "MIT"
+}

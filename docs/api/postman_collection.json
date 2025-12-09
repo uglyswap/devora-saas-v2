@@ -1,0 +1,545 @@
+{
+  "info": {
+    "name": "Devora AI Code Generator API",
+    "description": "Complete API collection for Devora platform - AI-powered code generation with multi-agent orchestration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "3.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "openrouter_api_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "github_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vercel_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "project_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/",
+              "host": ["{{base_url}}"],
+              "path": ["api", ""]
+            },
+            "description": "Check if the API server is running"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.access_token) {",
+                  "    pm.collectionVariables.set('auth_token', response.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login and receive JWT token (automatically saved to collection variables)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "settings"]
+            },
+            "description": "Retrieve user settings and API keys"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"openrouter_api_key\": \"{{openrouter_api_key}}\",\n  \"github_token\": \"{{github_token}}\",\n  \"vercel_token\": \"{{vercel_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "settings"]
+            },
+            "description": "Update API keys and integration tokens"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List Projects",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Get all projects for the authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.id) {",
+                  "    pm.collectionVariables.set('project_id', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My New Project\",\n  \"description\": \"A test project\",\n  \"project_type\": \"saas\",\n  \"files\": [\n    {\n      \"name\": \"index.html\",\n      \"content\": \"<html><body>Hello World</body></html>\",\n      \"language\": \"html\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Create a new project (project_id automatically saved)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}"]
+            },
+            "description": "Get a specific project by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"description\": \"Updated description\",\n  \"files\": [\n    {\n      \"name\": \"index.html\",\n      \"content\": \"<html><body>Updated Content</body></html>\",\n      \"language\": \"html\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}"]
+            },
+            "description": "Update an existing project"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "{{project_id}}"]
+            },
+            "description": "Delete a project permanently"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI Generation",
+      "item": [
+        {
+          "name": "List Available Models",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/openrouter/models?api_key={{openrouter_api_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "openrouter", "models"],
+              "query": [
+                {
+                  "key": "api_key",
+                  "value": "{{openrouter_api_key}}"
+                }
+              ]
+            },
+            "description": "Get all available AI models from OpenRouter"
+          },
+          "response": []
+        },
+        {
+          "name": "Simple Code Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Create a modern landing page with a hero section, features, and contact form\",\n  \"model\": \"openai/gpt-4o\",\n  \"api_key\": \"{{openrouter_api_key}}\",\n  \"conversation_history\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/openrouter",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "openrouter"]
+            },
+            "description": "Generate simple HTML/CSS/JS code"
+          },
+          "response": []
+        },
+        {
+          "name": "Full-Stack SaaS Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Build a task management SaaS with user authentication, Stripe payments, and a dashboard to create and track tasks. Users should be able to mark tasks as complete and filter by status.\",\n  \"model\": \"openai/gpt-4o\",\n  \"api_key\": \"{{openrouter_api_key}}\",\n  \"project_type\": \"saas\",\n  \"conversation_history\": [],\n  \"current_files\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/fullstack",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "fullstack"]
+            },
+            "description": "Generate complete Next.js SaaS application with multi-agent orchestration"
+          },
+          "response": []
+        },
+        {
+          "name": "E-commerce Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Create an e-commerce store for selling handmade crafts with product catalog, shopping cart, and Stripe checkout\",\n  \"model\": \"openai/gpt-4o\",\n  \"api_key\": \"{{openrouter_api_key}}\",\n  \"project_type\": \"ecommerce\",\n  \"conversation_history\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/fullstack",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "fullstack"]
+            },
+            "description": "Generate e-commerce application"
+          },
+          "response": []
+        },
+        {
+          "name": "Blog Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Build a tech blog with markdown support, dark mode, comments, and RSS feed\",\n  \"model\": \"anthropic/claude-4-sonnet\",\n  \"api_key\": \"{{openrouter_api_key}}\",\n  \"project_type\": \"blog\",\n  \"conversation_history\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/fullstack",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "fullstack"]
+            },
+            "description": "Generate blog application with markdown support"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "item": [
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "templates"]
+            },
+            "description": "Get all available project templates"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "GitHub Integration",
+      "item": [
+        {
+          "name": "Export to GitHub",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"repo_name\": \"my-devora-project\",\n  \"github_token\": \"{{github_token}}\",\n  \"private\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/github/export",
+              "host": ["{{base_url}}"],
+              "path": ["api", "github", "export"]
+            },
+            "description": "Create a new GitHub repository and push all project files"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vercel Deployment",
+      "item": [
+        {
+          "name": "Deploy to Vercel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"vercel_token\": \"{{vercel_token}}\",\n  \"project_name\": \"my-devora-app\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vercel/deploy",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vercel", "deploy"]
+            },
+            "description": "Deploy the project to Vercel for production hosting"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Create Checkout Session",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"pro\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/stripe/checkout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stripe", "checkout"]
+            },
+            "description": "Create a Stripe checkout session for subscription"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

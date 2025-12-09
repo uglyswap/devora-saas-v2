@@ -1,0 +1,819 @@
+/**
+ * Devora Accessibility Styles
+ * WCAG 2.1 AA Compliant
+ *
+ * This file contains accessibility-focused styles including:
+ * - Focus indicators
+ * - Color contrast fixes
+ * - Screen reader utilities
+ * - Reduced motion support
+ * - High contrast mode support
+ */
+
+/* ========================================
+   SCREEN READER UTILITIES
+   ======================================== */
+
+/**
+ * Screen reader only class
+ * Visually hides content but keeps it accessible to screen readers
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/**
+ * Makes sr-only content visible when focused
+ * Useful for skip links
+ */
+.sr-only-focusable:focus,
+.sr-only-focusable:active {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ========================================
+   FOCUS INDICATORS
+   WCAG 2.4.7: Focus Visible (AA)
+   Minimum 3:1 contrast ratio
+   ======================================== */
+
+/**
+ * Remove default focus outline
+ * We'll replace it with a visible custom outline
+ */
+*:focus {
+  outline: none;
+}
+
+/**
+ * High-contrast focus indicator for keyboard navigation
+ * Only shows for keyboard users (not mouse clicks)
+ */
+*:focus-visible {
+  outline: 3px solid #0066cc;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/**
+ * Focus styles for interactive elements
+ */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #0066cc;
+  outline-offset: 2px;
+}
+
+/**
+ * Focus ring for custom components
+ */
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="radio"]:focus-visible,
+[role="checkbox"]:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline: 3px solid #0066cc;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/**
+ * Dark mode focus indicator
+ */
+.dark *:focus-visible {
+  outline-color: #60a5fa;
+}
+
+/**
+ * Focus within - style parent when child is focused
+ */
+.focus-within-ring:focus-within {
+  outline: 2px solid #0066cc;
+  outline-offset: 1px;
+}
+
+/* ========================================
+   SKIP NAVIGATION LINK
+   WCAG 2.4.1: Bypass Blocks (A)
+   ======================================== */
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #0066cc;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-weight: 600;
+  z-index: 9999;
+  border-radius: 0 0 4px 0;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ========================================
+   COLOR CONTRAST FIXES
+   WCAG 1.4.3: Contrast (Minimum) (AA)
+   Text: 4.5:1 minimum
+   Large text (18pt+): 3:1 minimum
+   UI components: 3:1 minimum
+   ======================================== */
+
+/**
+ * Placeholder text contrast
+ * Minimum 4.5:1 on white background
+ */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #9ca3af;
+}
+
+/**
+ * Disabled state contrast
+ */
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: #e5e7eb;
+  color: #4b5563;
+  cursor: not-allowed;
+  opacity: 1; /* Override default opacity */
+}
+
+.dark button:disabled,
+.dark input:disabled,
+.dark textarea:disabled,
+.dark select:disabled {
+  background-color: #374151;
+  color: #9ca3af;
+}
+
+/**
+ * Link contrast
+ */
+a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+a:hover,
+a:focus {
+  color: #0047b3;
+}
+
+a:visited {
+  color: #5b21b6;
+}
+
+.dark a {
+  color: #60a5fa;
+}
+
+.dark a:hover,
+.dark a:focus {
+  color: #93c5fd;
+}
+
+/**
+ * Error state contrast
+ */
+.error-message,
+[role="alert"].error,
+.text-error {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.dark .error-message,
+.dark [role="alert"].error,
+.dark .text-error {
+  color: #fca5a5;
+}
+
+/**
+ * Success state contrast
+ */
+.success-message,
+[role="status"].success,
+.text-success {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.dark .success-message,
+.dark [role="status"].success,
+.dark .text-success {
+  color: #86efac;
+}
+
+/**
+ * Warning state contrast
+ */
+.warning-message,
+.text-warning {
+  color: #ca8a04;
+  font-weight: 500;
+}
+
+.dark .warning-message,
+.dark .text-warning {
+  color: #fde047;
+}
+
+/**
+ * Muted text with sufficient contrast
+ */
+.text-muted {
+  color: #4b5563;
+}
+
+.dark .text-muted {
+  color: #9ca3af;
+}
+
+/* ========================================
+   REDUCED MOTION
+   WCAG 2.3.3: Animation from Interactions (AAA)
+   Respects user's motion preferences
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/**
+ * Manual reduced motion toggle
+ */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ========================================
+   HIGH CONTRAST MODE
+   Enhanced visibility for users with low vision
+   ======================================== */
+
+@media (prefers-contrast: high) {
+  /**
+   * Stronger focus indicators
+   */
+  *:focus-visible {
+    outline-width: 4px;
+    outline-offset: 3px;
+  }
+
+  /**
+   * Stronger borders
+   */
+  button,
+  input,
+  textarea,
+  select {
+    border-width: 2px;
+  }
+
+  /**
+   * Higher contrast text
+   */
+  body {
+    color: #000000;
+    background-color: #ffffff;
+  }
+
+  .dark body {
+    color: #ffffff;
+    background-color: #000000;
+  }
+}
+
+/* ========================================
+   KEYBOARD NAVIGATION HELPERS
+   ======================================== */
+
+/**
+ * Tab navigation indicator
+ * Shows user is navigating via keyboard
+ */
+body.user-is-tabbing *:focus {
+  outline: 3px solid #0066cc;
+  outline-offset: 2px;
+}
+
+/**
+ * Remove focus outline for mouse users
+ */
+body:not(.user-is-tabbing) *:focus {
+  outline: none;
+}
+
+/* ========================================
+   INTERACTIVE ELEMENT STATES
+   ======================================== */
+
+/**
+ * Hover states with sufficient contrast
+ */
+button:hover:not(:disabled),
+a:hover {
+  opacity: 0.9;
+}
+
+/**
+ * Active states
+ */
+button:active:not(:disabled),
+a:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled),
+  a:active {
+    transform: none;
+  }
+}
+
+/**
+ * Selected state for radio/checkbox
+ */
+[role="radio"][aria-checked="true"],
+[role="checkbox"][aria-checked="true"] {
+  background-color: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+.dark [role="radio"][aria-checked="true"],
+.dark [role="checkbox"][aria-checked="true"] {
+  background-color: #60a5fa;
+  color: #000000;
+}
+
+/* ========================================
+   FORM VALIDATION INDICATORS
+   ======================================== */
+
+/**
+ * Invalid input state
+ */
+input[aria-invalid="true"],
+textarea[aria-invalid="true"],
+select[aria-invalid="true"] {
+  border-color: #dc2626;
+  border-width: 2px;
+}
+
+input[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"]:focus,
+select[aria-invalid="true"]:focus {
+  outline-color: #dc2626;
+  border-color: #dc2626;
+}
+
+/**
+ * Valid input state
+ */
+input[aria-invalid="false"],
+textarea[aria-invalid="false"],
+select[aria-invalid="false"] {
+  border-color: #16a34a;
+}
+
+/* ========================================
+   LIVE REGIONS
+   WCAG 4.1.3: Status Messages (AA)
+   ======================================== */
+
+/**
+ * Polite live region
+ * Announces changes when screen reader is idle
+ */
+[aria-live="polite"] {
+  position: relative;
+}
+
+/**
+ * Assertive live region
+ * Interrupts screen reader to announce immediately
+ */
+[aria-live="assertive"] {
+  position: relative;
+}
+
+/**
+ * Status role styling
+ */
+[role="status"] {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+/**
+ * Alert role styling
+ */
+[role="alert"] {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin: 8px 0;
+  border-left: 4px solid #dc2626;
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+.dark [role="alert"] {
+  background-color: #450a0a;
+  color: #fca5a5;
+}
+
+/* ========================================
+   TOOLTIP ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Tooltip container
+ */
+[role="tooltip"] {
+  position: absolute;
+  z-index: 9999;
+  padding: 8px 12px;
+  background-color: #1f2937;
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 14px;
+  max-width: 200px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/**
+ * Tooltip arrow (optional)
+ */
+[role="tooltip"]::before {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #1f2937;
+}
+
+/* ========================================
+   DIALOG/MODAL ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Modal backdrop
+ */
+[role="dialog"]::backdrop,
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+/**
+ * Modal container
+ */
+[role="dialog"],
+[role="alertdialog"] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  z-index: 10000;
+}
+
+.dark [role="dialog"],
+.dark [role="alertdialog"] {
+  background-color: #1f2937;
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+
+/**
+ * Loading indicator
+ */
+[aria-busy="true"] {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/**
+ * Loading spinner with screen reader text
+ */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #0066cc;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+    border-top-color: #0066cc;
+  }
+}
+
+/* ========================================
+   TAB LIST / TAB PANEL
+   ======================================== */
+
+/**
+ * Tab list container
+ */
+[role="tablist"] {
+  display: flex;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/**
+ * Individual tab
+ */
+[role="tab"] {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: border-color 0.2s;
+}
+
+[role="tab"]:hover {
+  background-color: #f3f4f6;
+}
+
+[role="tab"][aria-selected="true"] {
+  border-bottom-color: #0066cc;
+  font-weight: 600;
+}
+
+/**
+ * Tab panel
+ */
+[role="tabpanel"] {
+  padding: 16px;
+}
+
+[role="tabpanel"]:focus {
+  outline: none;
+}
+
+/* ========================================
+   NAVIGATION MENU
+   ======================================== */
+
+/**
+ * Menu button
+ */
+[aria-haspopup="menu"],
+[aria-haspopup="true"] {
+  position: relative;
+}
+
+/**
+ * Menu container
+ */
+[role="menu"] {
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dark [role="menu"] {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+/**
+ * Menu item
+ */
+[role="menuitem"] {
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+[role="menuitem"]:hover,
+[role="menuitem"]:focus {
+  background-color: #f3f4f6;
+}
+
+.dark [role="menuitem"]:hover,
+.dark [role="menuitem"]:focus {
+  background-color: #374151;
+}
+
+/* ========================================
+   BREADCRUMB NAVIGATION
+   ======================================== */
+
+/**
+ * Breadcrumb container
+ */
+[aria-label="Breadcrumb"] {
+  padding: 8px 0;
+}
+
+/**
+ * Breadcrumb list
+ */
+[aria-label="Breadcrumb"] ol {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+}
+
+/**
+ * Current page indicator
+ */
+[aria-current="page"] {
+  color: #4b5563;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ========================================
+   PROGRESS INDICATORS
+   ======================================== */
+
+/**
+ * Progress bar
+ */
+[role="progressbar"] {
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/**
+ * Progress bar fill
+ */
+[role="progressbar"]::after {
+  content: "";
+  display: block;
+  height: 100%;
+  background-color: #0066cc;
+  transition: width 0.3s ease;
+}
+
+/* ========================================
+   RESPONSIVE ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Touch target size for mobile
+ * Minimum 44x44px for WCAG AAA
+ */
+@media (max-width: 768px) {
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ========================================
+   PRINT ACCESSIBILITY
+   ======================================== */
+
+@media print {
+  /**
+   * Show link URLs in print
+   */
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+
+  /**
+   * Hide skip links in print
+   */
+  .skip-link {
+    display: none;
+  }
+
+  /**
+   * Ensure good contrast in print
+   */
+  body {
+    color: #000000;
+    background-color: #ffffff;
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/**
+ * Visually hidden but accessible
+ */
+.accessible-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/**
+ * Not focusable
+ */
+.not-focusable {
+  pointer-events: none;
+  user-select: none;
+}
+
+/**
+ * High contrast border
+ */
+.a11y-border {
+  border: 2px solid currentColor;
+}
+
+/**
+ * High contrast text
+ */
+.a11y-text-contrast {
+  color: #000000;
+  background-color: #ffffff;
+}
+
+.dark .a11y-text-contrast {
+  color: #ffffff;
+  background-color: #000000;
+}

@@ -1,228 +1,494 @@
-# Devora - Générateur de Code IA Gratuit
+# Devora - AI-Powered Code Generator SaaS
 
-Une application complète de génération de code assistée par IA, **100% gratuite et open source**. 
+**Transform ideas into production-ready applications using AI multi-agent orchestration.**
 
-## 🌟 Fonctionnalités
-
-### Génération de Code IA
-- **Support de tous les modèles OpenRouter** : GPT-4o, Claude, Gemini, et bien plus
-- Génération de code HTML, CSS et JavaScript en temps réel
-- Chat conversationnel avec contexte maintenu
-- Parsing intelligent du code généré
-
-### Éditeur de Code
-- **Monaco Editor** intégré (le même que VS Code)
-- Coloration syntaxique pour HTML, CSS, JavaScript
-- Gestion de fichiers multiples
-- Ajout/suppression de fichiers à la volée
-- Copie rapide du code
-
-### Prévisualisation en Direct
-- Aperçu instantané du code dans une iframe
-- Mise à jour automatique lors des modifications
-- Rendu HTML/CSS/JS en temps réel
-
-### Gestion des Projets
-- Sauvegarde automatique dans MongoDB
-- Dashboard pour gérer tous vos projets
-- Historique des conversations
-- Export et téléchargement
-
-### Intégrations
-- **Export GitHub** : Créez des repositories directement depuis l'app
-- **Déploiement Vercel** : Déployez en production en un clic
-- Gestion sécurisée des tokens API
-
-## 🚀 Utilisation
-
-### 1. Configuration Initiale
-
-1. Allez dans **Paramètres** depuis la page d'accueil
-2. Ajoutez votre **clé API OpenRouter** :
-   - Visitez [openrouter.ai/keys](https://openrouter.ai/keys)
-   - Créez un compte et générez une clé
-   - Ajoutez des crédits à votre compte OpenRouter
-
-3. **(Optionnel)** Configurez vos tokens pour l'export :
-   - **GitHub Token** : [github.com/settings/tokens](https://github.com/settings/tokens)
-     - Permissions requises : `repo`
-   - **Vercel Token** : [vercel.com/account/tokens](https://vercel.com/account/tokens)
-
-### 2. Créer un Projet
-
-1. Cliquez sur **"Commencer gratuitement"** ou **"Nouveau Projet"**
-2. L'éditeur s'ouvre avec 3 fichiers par défaut : `index.html`, `styles.css`, `script.js`
-
-### 3. Générer du Code avec l'IA
-
-1. Dans le panneau **Assistant IA** (gauche) :
-   - Sélectionnez un modèle (GPT-4o, Claude, etc.)
-   - Décrivez ce que vous voulez créer
-   - Cliquez sur le bouton d'envoi
-
-2. L'IA génère le code et met à jour automatiquement vos fichiers
-3. La preview s'affiche instantanément à droite
-
-### 4. Gérer les Fichiers
-
-- **Ajouter un fichier** : Cliquez sur le bouton `+` dans la barre d'onglets
-- **Supprimer un fichier** : Cliquez sur le `×` dans l'onglet du fichier
-- **Éditer** : Cliquez sur l'éditeur Monaco au centre
-
-### 5. Sauvegarder et Exporter
-
-- **Sauvegarder** : Cliquez sur le bouton vert "Sauvegarder"
-- **Télécharger** : Icône de téléchargement pour obtenir tous les fichiers
-- **Export GitHub** : Bouton violet "GitHub" pour créer un repo
-- **Déployer Vercel** : Bouton bleu "Vercel" pour mettre en production
-
-## 🏗️ Architecture Technique
-
-### Backend (FastAPI + MongoDB)
-```
-/app/backend/
-├── server.py          # API principale
-├── requirements.txt   # Dépendances Python
-└── .env              # Variables d'environnement
-```
-
-**APIs disponibles :**
-- `GET /api/` - Health check
-- `GET/PUT /api/settings` - Configuration utilisateur
-- `GET/POST/DELETE /api/projects` - Gestion des projets
-- `GET/POST/DELETE /api/conversations` - Gestion des conversations
-- `GET /api/openrouter/models` - Liste des modèles disponibles
-- `POST /api/generate/openrouter` - Génération de code via OpenRouter
-- `POST /api/github/export` - Export vers GitHub
-- `POST /api/vercel/deploy` - Déploiement sur Vercel
-
-### Frontend (React)
-```
-/app/frontend/src/
-├── App.js                    # Application principale
-├── pages/
-│   ├── HomePage.jsx         # Page d'accueil
-│   ├── Dashboard.jsx        # Liste des projets
-│   ├── EditorPage.jsx       # Éditeur principal
-│   └── SettingsPage.jsx     # Configuration
-└── components/ui/           # Composants Shadcn UI
-```
-
-### Technologies Utilisées
-
-**Backend :**
-- FastAPI - Framework API moderne
-- MongoDB - Base de données NoSQL
-- Motor - Driver MongoDB async
-- httpx - Client HTTP pour OpenRouter
-- PyGithub - Intégration GitHub
-- emergentintegrations - Bibliothèque LLM
-
-**Frontend :**
-- React 19 - Framework UI
-- Monaco Editor - Éditeur de code
-- Shadcn UI - Composants UI modernes
-- Tailwind CSS - Styling
-- Axios - Client HTTP
-- React Router - Navigation
-- Lucide React - Icônes
-
-## 🎨 Design
-
-L'interface utilise une palette de couleurs moderne :
-- Couleur primaire : Émeraude (#10b981)
-- Fond sombre : #0a0a0b
-- Design inspiré des outils de développement modernes
-- Police : Space Grotesk (titres) + Inter (texte)
-
-## 📝 Modèles OpenRouter Supportés
-
-L'application supporte **tous les modèles disponibles sur OpenRouter**, incluant :
-
-### OpenAI
-- GPT-4o, GPT-4o-mini
-- GPT-5, GPT-5-mini, GPT-5-nano
-- O1, O3, O4-mini
-
-### Anthropic
-- Claude 3.5 Haiku
-- Claude 4 Sonnet
-- Claude 4 Opus
-
-### Google
-- Gemini 2.0 Flash
-- Gemini 2.5 Flash
-- Gemini 2.5 Pro
-- Gemini 3 Pro Preview
-
-Et bien d'autres modèles disponibles sur OpenRouter !
-
-## 🔒 Sécurité
-
-- Les clés API sont stockées de manière sécurisée dans MongoDB
-- Les tokens ne sont jamais exposés dans le frontend
-- Toutes les requêtes API passent par le backend
-- CORS configuré correctement
-
-## 🌐 Variables d'Environnement
-
-### Backend (.env)
-```env
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=devora_projects_db
-CORS_ORIGINS=*
-```
-
-### Frontend (.env)
-```env
-REACT_APP_BACKEND_URL=<URL_BACKEND>
-```
-
-## 📦 Installation et Démarrage
-
-Les services sont gérés par Supervisor :
-
-```bash
-# Redémarrer le backend
-sudo supervisorctl restart backend
-
-# Redémarrer le frontend
-sudo supervisorctl restart frontend
-
-# Vérifier le statut
-sudo supervisorctl status
-```
-
-## 🎯 Avantages de Devora
-
-| Fonctionnalité | Devora | Autres solutions |
-|---------------|--------|------------------|
-| Prix | **100% Gratuit** | Payant (abonnement) |
-| Modèles IA | Tous les modèles OpenRouter | Limité |
-| Clé API | Votre propre clé | Incluse/Limitée |
-| Code Source | Open Source | Propriétaire |
-| Déploiement | GitHub + Vercel | Variable |
-| Base de données | MongoDB (locale) | Cloud propriétaire |
-
-## 🤝 Contribution
-
-Ce projet est open source. N'hésitez pas à :
-- Signaler des bugs
-- Proposer des améliorations
-- Contribuer au code
-- Partager vos projets créés avec l'app
-
-## 📄 Licence
-
-MIT License - Utilisez librement pour vos projets personnels et commerciaux.
-
-## 🙏 Remerciements
-
-Créé avec ❤️ en utilisant :
-- OpenRouter pour l'accès aux modèles IA
-- Technologies open source
-- La communauté open source
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.1-009688.svg)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-19.0.0-61DAFB.svg)](https://reactjs.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB-4.5.0-47A248.svg)](https://www.mongodb.com)
 
 ---
 
-**Bon code ! 🚀**
+## 🌟 Overview
+
+Devora is a **next-generation SaaS platform** that leverages AI multi-agent orchestration to generate complete, production-ready web applications. From simple landing pages to full-stack SaaS products with authentication, payments, and database integration.
+
+### Key Features
+
+- **🤖 Multi-Agent AI Orchestration** - Specialized agents for architecture, frontend, backend, and database
+- **⚡ Full-Stack Generation** - Next.js 14+ applications with App Router, Server Actions, and Supabase
+- **🎨 Modern UI Components** - Built with Tailwind CSS and shadcn/ui
+- **🔐 Authentication Ready** - Supabase Auth with RLS policies
+- **💳 Payment Integration** - Stripe subscriptions and webhooks
+- **📦 Export & Deploy** - One-click GitHub export and Vercel deployment
+- **💾 Persistent Memory** - Context-aware conversations using Memori SDK
+- **🔄 Real-time Streaming** - SSE for live generation progress
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 18+ and npm/yarn
+- **Python** 3.10+
+- **MongoDB** 4.4+
+- **OpenRouter API Key** (for AI models)
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/yourusername/devora-transformation.git
+cd devora-transformation
+```
+
+2. **Install Backend Dependencies**
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+3. **Configure Environment Variables**
+```bash
+# Backend .env
+cp .env.example .env
+# Edit .env with your MongoDB URL and other settings
+```
+
+4. **Install Frontend Dependencies**
+```bash
+cd ../frontend
+npm install
+# or
+yarn install
+```
+
+5. **Start the Services**
+
+**Backend (Terminal 1):**
+```bash
+cd backend
+uvicorn server:app --reload --port 8000
+```
+
+**Frontend (Terminal 2):**
+```bash
+cd frontend
+npm start
+```
+
+6. **Access the Application**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+
+---
+
+## 📖 Documentation
+
+- **[Architecture Guide](./docs/ARCHITECTURE.md)** - System architecture and design patterns
+- **[Contributing Guide](./docs/CONTRIBUTING.md)** - How to contribute to the project
+- **[API Documentation](./docs/api/openapi.yaml)** - Complete OpenAPI specification
+- **[SDK Documentation](./docs/sdk/)** - Client SDKs and integration guides
+- **[ADRs](./docs/adr/)** - Architecture Decision Records
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│              USER REQUEST                        │
+└────────────────────┬────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────┐
+│         CONTEXT COMPRESSOR                       │
+│  • Token management (128K limit)                │
+│  • Intelligent compression                       │
+└────────────────────┬────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────┐
+│         ARCHITECT AGENT                          │
+│  • Analyzes requirements                         │
+│  • Selects template (SaaS, E-commerce, etc.)    │
+│  • Defines architecture                          │
+└────────────────────┬────────────────────────────┘
+                     │
+     ┌───────────────┼───────────────┐
+     │               │               │
+     ▼               ▼               ▼
+┌─────────┐   ┌─────────┐   ┌──────────┐
+│FRONTEND │   │BACKEND  │   │DATABASE  │
+│ AGENT   │   │ AGENT   │   │ AGENT    │
+│         │   │         │   │          │
+│Next.js  │   │API      │   │Supabase  │
+│Tailwind │   │Routes   │   │Schemas   │
+│shadcn/ui│   │Auth     │   │RLS       │
+└────┬────┘   └────┬────┘   └────┬─────┘
+     │             │             │
+     └─────────────┼─────────────┘
+                   │ (Parallel Execution)
+                   ▼
+┌─────────────────────────────────────────────────┐
+│         REVIEWER AGENT                           │
+│  • Code validation                               │
+│  • Error detection                               │
+│  • Iterative improvement (max 2)                │
+└────────────────────┬────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────┐
+│              OUTPUT                              │
+│  • Production-ready Next.js app                 │
+│  • Supabase schemas with RLS                    │
+│  • .env.local.example                           │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+- **FastAPI 0.110.1** - Modern Python web framework
+- **MongoDB 4.5.0** - Document database for projects and users
+- **Motor 3.3.1** - Async MongoDB driver
+- **OpenAI SDK** - AI model integration
+- **LiteLLM 1.80.0** - Unified LLM interface
+- **Stripe 14.0.1** - Payment processing
+- **PyGithub 2.8.1** - GitHub API integration
+- **Memori SDK 2.0.0** - Persistent memory management
+
+### Frontend
+- **React 19.0.0** - Modern UI framework
+- **React Router 7.5.1** - Client-side routing
+- **Monaco Editor** - VS Code-powered code editor
+- **Tailwind CSS 3.4.17** - Utility-first CSS
+- **shadcn/ui** - High-quality React components
+- **Axios 1.8.4** - HTTP client
+- **Lucide React** - Icon library
+
+### AI & Orchestration
+- **OrchestratorV2** - Parallel multi-agent execution
+- **ArchitectAgent** - Requirements analysis and planning
+- **FrontendAgent** - Next.js UI generation
+- **BackendAgent** - API and authentication
+- **DatabaseAgent** - Supabase schemas and RLS
+- **ReviewerAgent** - Code quality assurance
+
+---
+
+## 💡 Usage
+
+### 1. Configure API Keys
+
+Navigate to **Settings** and add:
+- **OpenRouter API Key** - Get from [openrouter.ai/keys](https://openrouter.ai/keys)
+- **GitHub Token** (optional) - For repo export
+- **Vercel Token** (optional) - For deployment
+
+### 2. Create a Project
+
+Click **"New Project"** or **"Get Started"** to open the editor with default files.
+
+### 3. Generate Code with AI
+
+In the **AI Assistant** panel:
+1. Select your preferred model (GPT-4o, Claude 4, Gemini 2.5, etc.)
+2. Describe what you want to build
+3. Click send and watch the AI generate code in real-time
+
+**Example prompts:**
+- "Create a modern landing page with hero section and pricing"
+- "Build a SaaS dashboard with user authentication"
+- "Generate a blog with dark mode and comment system"
+
+### 4. Full-Stack Project Generation
+
+For complete applications:
+```
+Use the /api/generate/fullstack endpoint with:
+- Project type: saas | ecommerce | blog | dashboard | api
+- Description: Detailed requirements
+- Model: Your preferred AI model
+```
+
+The system will generate:
+- ✅ Next.js 14+ App Router structure
+- ✅ Tailwind + shadcn/ui components
+- ✅ API routes with authentication
+- ✅ Supabase schemas with RLS policies
+- ✅ Stripe integration (for SaaS)
+- ✅ Email templates
+- ✅ Environment configuration
+
+### 5. Export & Deploy
+
+- **💾 Save** - Auto-saves to MongoDB
+- **📥 Download** - Export all files as ZIP
+- **🔗 GitHub Export** - Create a new repository
+- **🚀 Vercel Deploy** - Deploy to production
+
+---
+
+## 🔌 API Endpoints
+
+### Core Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/` | GET | Health check |
+| `/api/settings` | GET/PUT | User settings management |
+| `/api/projects` | GET/POST | Project CRUD operations |
+| `/api/projects/{id}` | GET/PUT/DELETE | Single project operations |
+| `/api/openrouter/models` | GET | List available AI models |
+
+### Generation Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/generate/openrouter` | POST | Simple code generation (HTML/CSS/JS) |
+| `/api/generate/agentic` | POST | Multi-agent code generation |
+| `/api/generate/fullstack` | POST | **Full-stack Next.js app generation** |
+| `/api/templates` | GET | List available templates |
+
+### Integration Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/github/export` | POST | Export project to GitHub |
+| `/api/vercel/deploy` | POST | Deploy to Vercel |
+| `/api/stripe/checkout` | POST | Create Stripe checkout session |
+| `/api/stripe/webhook` | POST | Handle Stripe webhooks |
+
+### Authentication & Admin
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register` | POST | User registration |
+| `/api/auth/login` | POST | User login |
+| `/api/auth/logout` | POST | User logout |
+| `/api/admin/*` | Various | Admin panel operations |
+
+Full API documentation available at `/docs` (Swagger UI) when running the server.
+
+---
+
+## 🗄️ Database Schema
+
+### MongoDB Collections
+
+**projects**
+```javascript
+{
+  id: String (UUID),
+  name: String,
+  description: String,
+  files: [
+    { name: String, content: String, language: String }
+  ],
+  conversation_history: [
+    { role: "user"|"assistant", content: String }
+  ],
+  project_type: String, // saas, ecommerce, blog, etc.
+  github_repo_url: String,
+  vercel_url: String,
+  user_id: String,
+  created_at: DateTime,
+  updated_at: DateTime
+}
+```
+
+**users**
+```javascript
+{
+  id: String (UUID),
+  email: String,
+  hashed_password: String,
+  stripe_customer_id: String,
+  subscription_status: String,
+  plan: String, // free, pro, enterprise
+  created_at: DateTime,
+  updated_at: DateTime
+}
+```
+
+**settings**
+```javascript
+{
+  id: String (UUID),
+  openrouter_api_key: String (encrypted),
+  github_token: String (encrypted),
+  vercel_token: String (encrypted),
+  created_at: DateTime,
+  updated_at: DateTime
+}
+```
+
+---
+
+## 🔒 Security
+
+- **🔐 API Key Encryption** - All API keys stored encrypted in MongoDB
+- **🛡️ CORS Protection** - Configured allowed origins
+- **⚡ Rate Limiting** - Prevents API abuse
+- **🔑 JWT Authentication** - Secure session management
+- **✅ Input Validation** - Pydantic models for all requests
+- **🔍 Stripe Webhook Verification** - Signature validation
+
+---
+
+## 🌐 Environment Variables
+
+### Backend (.env)
+
+```env
+# Database
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=devora_projects_db
+
+# CORS
+CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+
+# JWT
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Email (Resend)
+RESEND_API_KEY=re_...
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
+
+# Memori SDK (Optional)
+MEMORI_API_KEY=your-memori-key
+MEMORI_DATABASE_URL=postgresql://...
+```
+
+### Frontend (.env)
+
+```env
+REACT_APP_BACKEND_URL=http://localhost:8000
+```
+
+---
+
+## 📊 Features by Plan
+
+| Feature | Free | Pro | Enterprise |
+|---------|------|-----|------------|
+| AI Code Generation | ✅ | ✅ | ✅ |
+| Monaco Editor | ✅ | ✅ | ✅ |
+| Projects Limit | 5 | Unlimited | Unlimited |
+| GitHub Export | ❌ | ✅ | ✅ |
+| Vercel Deploy | ❌ | ✅ | ✅ |
+| Full-Stack Generation | ❌ | ✅ | ✅ |
+| Custom Templates | ❌ | ❌ | ✅ |
+| Priority Support | ❌ | ❌ | ✅ |
+| Team Collaboration | ❌ | ❌ | ✅ |
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](./docs/CONTRIBUTING.md) for details.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 🧪 Testing
+
+### Backend Tests
+```bash
+cd backend
+pytest
+```
+
+### Frontend Tests
+```bash
+cd frontend
+npm test
+```
+
+### Integration Tests
+```bash
+python backend/test_orchestration_integration.py
+```
+
+---
+
+## 📦 Deployment
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
+
+# Production build
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Manual Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] **TypeScript Agent** - Dedicated TypeScript code generation
+- [ ] **Testing Agent** - Automatic test generation (Jest, Playwright)
+- [ ] **SEO Agent** - Metadata and optimization
+- [ ] **Multi-language Support** - i18n integration
+- [ ] **Figma Integration** - Design-to-code conversion
+- [ ] **Real-time Collaboration** - Multi-user editing
+- [ ] **Custom Model Training** - Fine-tuned models for specific stacks
+- [ ] **Kubernetes Support** - Advanced deployment options
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **OpenRouter** - Unified access to multiple AI models
+- **Anthropic, OpenAI, Google** - Powerful language models
+- **Supabase** - Backend-as-a-Service platform
+- **Vercel** - Deployment and hosting
+- **shadcn/ui** - Beautiful UI components
+- **FastAPI** - Modern Python web framework
+
+---
+
+## 💬 Support
+
+- **📧 Email:** support@devora.ai
+- **💬 Discord:** [Join our community](https://discord.gg/devora)
+- **🐛 Issues:** [GitHub Issues](https://github.com/yourusername/devora-transformation/issues)
+- **📖 Docs:** [Full Documentation](https://docs.devora.ai)
+
+---
+
+**Built with ❤️ by the Devora Team**
+
+*Transform your ideas into reality with AI-powered development.*

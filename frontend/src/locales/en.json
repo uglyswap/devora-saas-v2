@@ -1,0 +1,428 @@
+{
+  "common": {
+    "appName": "Devora",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "retry": "Retry",
+    "logout": "Logout",
+    "login": "Login",
+    "register": "Register",
+    "welcome": "Welcome",
+    "hello": "Hello",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and"
+  },
+
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "editor": "Editor",
+    "templates": "Templates",
+    "settings": "Settings",
+    "billing": "Billing",
+    "support": "Support",
+    "admin": "Admin Panel",
+    "profile": "Profile",
+    "menu": "Menu",
+    "skipToMain": "Skip to main content"
+  },
+
+  "auth": {
+    "login": {
+      "title": "Login to Devora",
+      "subtitle": "Welcome back! Please enter your credentials",
+      "email": "Email Address",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "loginButton": "Sign In",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Register now",
+      "errorInvalidCredentials": "Invalid email or password",
+      "errorGeneric": "An error occurred. Please try again."
+    },
+
+    "register": {
+      "title": "Create Your Account",
+      "subtitle": "Join Devora and start building amazing web applications",
+      "name": "Full Name",
+      "namePlaceholder": "Enter your full name",
+      "email": "Email Address",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Create a password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "termsAgree": "I agree to the",
+      "termsLink": "Terms of Service",
+      "privacyLink": "Privacy Policy",
+      "registerButton": "Create Account",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "errorPasswordMismatch": "Passwords do not match",
+      "errorWeakPassword": "Password must be at least 8 characters, with 1 uppercase letter and 1 number",
+      "errorEmailExists": "An account with this email already exists",
+      "successRegistration": "Account created successfully! Please check your email to verify."
+    },
+
+    "validation": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "nameRequired": "Name is required",
+      "fieldRequired": "This field is required"
+    }
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {{name}}",
+    "quickActions": "Quick Actions",
+    "recentProjects": "Recent Projects",
+    "statistics": "Statistics",
+    "newProject": "New Project",
+    "viewAll": "View All",
+    "noProjects": "No projects yet",
+    "createFirst": "Create your first project to get started",
+
+    "stats": {
+      "totalProjects": "Total Projects",
+      "activeProjects": "Active Projects",
+      "deployments": "Deployments",
+      "storage": "Storage Used"
+    },
+
+    "actions": {
+      "createApp": "Create New App",
+      "browseTemplates": "Browse Templates",
+      "viewDocs": "View Documentation",
+      "contactSupport": "Contact Support"
+    }
+  },
+
+  "editor": {
+    "title": "Web Application Editor",
+    "tabs": {
+      "code": "Code",
+      "preview": "Preview",
+      "console": "Console",
+      "settings": "Settings"
+    },
+
+    "toolbar": {
+      "save": "Save",
+      "undo": "Undo",
+      "redo": "Redo",
+      "format": "Format Code",
+      "run": "Run",
+      "deploy": "Deploy",
+      "share": "Share",
+      "settings": "Settings"
+    },
+
+    "sidebar": {
+      "files": "Files",
+      "components": "Components",
+      "assets": "Assets",
+      "dependencies": "Dependencies"
+    },
+
+    "files": {
+      "newFile": "New File",
+      "newFolder": "New Folder",
+      "rename": "Rename",
+      "delete": "Delete",
+      "upload": "Upload",
+      "download": "Download"
+    },
+
+    "messages": {
+      "savingProject": "Saving project...",
+      "projectSaved": "Project saved successfully",
+      "errorSaving": "Error saving project",
+      "deployingProject": "Deploying project...",
+      "projectDeployed": "Project deployed successfully",
+      "errorDeploying": "Error deploying project"
+    }
+  },
+
+  "templates": {
+    "title": "Template Gallery",
+    "subtitle": "Choose a template to start your project",
+    "categories": {
+      "all": "All Templates",
+      "landing": "Landing Pages",
+      "dashboard": "Dashboards",
+      "ecommerce": "E-commerce",
+      "portfolio": "Portfolios",
+      "blog": "Blogs",
+      "saas": "SaaS Applications"
+    },
+
+    "filter": {
+      "search": "Search templates...",
+      "sortBy": "Sort by",
+      "popular": "Most Popular",
+      "newest": "Newest",
+      "name": "Name"
+    },
+
+    "card": {
+      "preview": "Preview",
+      "useTemplate": "Use Template",
+      "details": "View Details",
+      "free": "Free",
+      "premium": "Premium"
+    }
+  },
+
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences",
+
+    "tabs": {
+      "profile": "Profile",
+      "account": "Account",
+      "preferences": "Preferences",
+      "security": "Security",
+      "notifications": "Notifications",
+      "billing": "Billing"
+    },
+
+    "profile": {
+      "title": "Profile Information",
+      "name": "Full Name",
+      "email": "Email Address",
+      "bio": "Bio",
+      "avatar": "Profile Picture",
+      "changeAvatar": "Change Avatar",
+      "updateProfile": "Update Profile",
+      "profileUpdated": "Profile updated successfully"
+    },
+
+    "preferences": {
+      "title": "Preferences",
+      "language": "Language",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeAuto": "Auto (System)",
+      "timezone": "Timezone",
+      "dateFormat": "Date Format",
+      "reducedMotion": "Reduce Motion",
+      "reducedMotionHelp": "Minimize animations and transitions for better accessibility"
+    },
+
+    "security": {
+      "title": "Security Settings",
+      "changePassword": "Change Password",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmNewPassword": "Confirm New Password",
+      "updatePassword": "Update Password",
+      "passwordUpdated": "Password updated successfully",
+      "twoFactor": "Two-Factor Authentication",
+      "twoFactorEnable": "Enable 2FA",
+      "twoFactorDisable": "Disable 2FA",
+      "sessions": "Active Sessions",
+      "revokeSession": "Revoke Session"
+    },
+
+    "notifications": {
+      "title": "Notification Preferences",
+      "emailNotifications": "Email Notifications",
+      "projectUpdates": "Project Updates",
+      "deploymentStatus": "Deployment Status",
+      "securityAlerts": "Security Alerts",
+      "marketing": "Marketing & Updates",
+      "pushNotifications": "Push Notifications"
+    }
+  },
+
+  "billing": {
+    "title": "Billing & Subscription",
+    "currentPlan": "Current Plan",
+    "planFree": "Free",
+    "planPro": "Pro",
+    "planEnterprise": "Enterprise",
+
+    "usage": {
+      "title": "Current Usage",
+      "projects": "Projects",
+      "storage": "Storage",
+      "bandwidth": "Bandwidth",
+      "deployments": "Deployments"
+    },
+
+    "plans": {
+      "title": "Choose Your Plan",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "save": "Save {{percent}}%",
+      "currentPlan": "Current Plan",
+      "upgrade": "Upgrade",
+      "downgrade": "Downgrade",
+      "selectPlan": "Select Plan"
+    },
+
+    "features": {
+      "unlimited": "Unlimited",
+      "projects": "{{count}} Projects",
+      "storage": "{{size}} Storage",
+      "bandwidth": "{{size}} Bandwidth",
+      "customDomain": "Custom Domain",
+      "ssl": "SSL Certificate",
+      "support": "{{level}} Support",
+      "analytics": "Advanced Analytics"
+    },
+
+    "payment": {
+      "title": "Payment Method",
+      "addCard": "Add Payment Method",
+      "updateCard": "Update Payment Method",
+      "cardEnding": "Card ending in {{last4}}",
+      "expiresOn": "Expires {{date}}"
+    }
+  },
+
+  "support": {
+    "title": "Support Center",
+    "subtitle": "Get help and find answers",
+
+    "contact": {
+      "title": "Contact Support",
+      "name": "Your Name",
+      "email": "Email Address",
+      "subject": "Subject",
+      "message": "Message",
+      "attachments": "Attachments",
+      "send": "Send Message",
+      "messageSent": "Your message has been sent. We'll get back to you soon!"
+    },
+
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "search": "Search FAQs..."
+    },
+
+    "docs": {
+      "title": "Documentation",
+      "gettingStarted": "Getting Started",
+      "tutorials": "Tutorials",
+      "apiReference": "API Reference",
+      "examples": "Examples"
+    }
+  },
+
+  "admin": {
+    "title": "Admin Panel",
+    "users": "Users",
+    "projects": "Projects",
+    "analytics": "Analytics",
+    "settings": "System Settings",
+
+    "usersManagement": {
+      "title": "User Management",
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "search": "Search users...",
+      "viewUser": "View User",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "suspendUser": "Suspend User"
+    }
+  },
+
+  "errors": {
+    "404": {
+      "title": "Page Not Found",
+      "message": "The page you're looking for doesn't exist.",
+      "action": "Go to Dashboard"
+    },
+
+    "500": {
+      "title": "Server Error",
+      "message": "Something went wrong on our end. Please try again later.",
+      "action": "Reload Page"
+    },
+
+    "403": {
+      "title": "Access Denied",
+      "message": "You don't have permission to access this resource.",
+      "action": "Go Back"
+    },
+
+    "network": {
+      "title": "Network Error",
+      "message": "Unable to connect to the server. Please check your internet connection.",
+      "action": "Retry"
+    }
+  },
+
+  "footer": {
+    "company": "Company",
+    "about": "About Us",
+    "careers": "Careers",
+    "blog": "Blog",
+    "contact": "Contact",
+
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "documentation": "Documentation",
+    "changelog": "Changelog",
+
+    "legal": "Legal",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+
+    "social": "Follow Us",
+    "copyright": "© {{year}} Devora. All rights reserved."
+  },
+
+  "cookies": {
+    "message": "We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "learnMore": "Learn More"
+  },
+
+  "accessibility": {
+    "skipToMain": "Skip to main content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "openDialog": "Open dialog",
+    "closeDialog": "Close dialog",
+    "loading": "Loading",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information",
+    "required": "Required field",
+    "optional": "Optional field",
+    "sortAscending": "Sort ascending",
+    "sortDescending": "Sort descending",
+    "currentPage": "Current page",
+    "pageOf": "Page {{current}} of {{total}}"
+  }
+}

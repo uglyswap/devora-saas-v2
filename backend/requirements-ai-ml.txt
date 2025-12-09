@@ -1,0 +1,92 @@
+# ===========================================
+# AI/ML Infrastructure Additional Dependencies
+# ===========================================
+# Install with: pip install -r requirements-ai-ml.txt
+
+# ============================================
+# Core AI/ML (REQUIRED)
+# ============================================
+httpx==0.28.1                  # Already in main requirements
+tiktoken==0.12.0               # Already in main requirements
+openai==1.99.9                 # Already in main requirements
+numpy>=1.24.0                  # For vector operations
+
+# ============================================
+# Vector Stores (OPTIONAL - choose one)
+# ============================================
+
+# Option 1: PostgreSQL with pgvector (RECOMMENDED for production)
+asyncpg==0.29.0                # Already in main requirements
+# Note: Requires pgvector extension in PostgreSQL
+# Install: CREATE EXTENSION vector;
+
+# Option 2: Pinecone (cloud vector database)
+# pinecone-client>=3.0.0
+
+# ============================================
+# Embeddings (OPTIONAL)
+# ============================================
+
+# Local embeddings (if not using OpenAI)
+# sentence-transformers>=2.2.0
+# torch>=2.0.0                 # Required for sentence-transformers
+
+# ============================================
+# Caching (OPTIONAL)
+# ============================================
+
+# Redis for distributed caching
+# redis>=5.0.0
+
+# ============================================
+# Monitoring & Analytics (OPTIONAL)
+# ============================================
+
+# Prometheus metrics (for production monitoring)
+# prometheus-client>=0.19.0
+
+# Grafana Loki logging
+# python-logging-loki>=0.3.0
+
+# ============================================
+# Development & Testing
+# ============================================
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# ============================================
+# Installation Notes
+# ============================================
+
+# MINIMAL SETUP (no optional dependencies):
+#   pip install -r requirements.txt
+#   # Uses in-memory vector store, OpenAI embeddings, memory cache
+
+# RECOMMENDED PRODUCTION SETUP:
+#   pip install -r requirements.txt
+#   pip install -r requirements-ai-ml.txt
+#   pip install asyncpg  # Already included
+#   pip install redis
+#   # Setup PostgreSQL with pgvector + Redis
+
+# FULL SETUP (all features):
+#   pip install -r requirements.txt
+#   pip install -r requirements-ai-ml.txt
+#   pip install sentence-transformers torch
+#   pip install pinecone-client
+#   pip install redis
+#   pip install prometheus-client
+
+# ============================================
+# PostgreSQL pgvector Setup
+# ============================================
+# 1. Install PostgreSQL 12+
+# 2. Install pgvector extension:
+#    git clone https://github.com/pgvector/pgvector.git
+#    cd pgvector
+#    make
+#    make install
+# 3. In psql:
+#    CREATE EXTENSION vector;
+# 4. Run migrations to create embeddings table

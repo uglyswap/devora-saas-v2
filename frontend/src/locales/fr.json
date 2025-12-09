@@ -1,0 +1,428 @@
+{
+  "common": {
+    "appName": "Devora",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Soumettre",
+    "retry": "Réessayer",
+    "logout": "Déconnexion",
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "welcome": "Bienvenue",
+    "hello": "Bonjour",
+    "yes": "Oui",
+    "no": "Non",
+    "or": "ou",
+    "and": "et"
+  },
+
+  "navigation": {
+    "home": "Accueil",
+    "dashboard": "Tableau de bord",
+    "editor": "Éditeur",
+    "templates": "Modèles",
+    "settings": "Paramètres",
+    "billing": "Facturation",
+    "support": "Support",
+    "admin": "Panneau d'administration",
+    "profile": "Profil",
+    "menu": "Menu",
+    "skipToMain": "Aller au contenu principal"
+  },
+
+  "auth": {
+    "login": {
+      "title": "Connexion à Devora",
+      "subtitle": "Bon retour ! Veuillez entrer vos identifiants",
+      "email": "Adresse e-mail",
+      "emailPlaceholder": "Entrez votre e-mail",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Entrez votre mot de passe",
+      "rememberMe": "Se souvenir de moi",
+      "forgotPassword": "Mot de passe oublié ?",
+      "loginButton": "Se connecter",
+      "noAccount": "Pas encore de compte ?",
+      "registerLink": "Inscrivez-vous maintenant",
+      "errorInvalidCredentials": "E-mail ou mot de passe invalide",
+      "errorGeneric": "Une erreur s'est produite. Veuillez réessayer."
+    },
+
+    "register": {
+      "title": "Créer votre compte",
+      "subtitle": "Rejoignez Devora et commencez à créer des applications web incroyables",
+      "name": "Nom complet",
+      "namePlaceholder": "Entrez votre nom complet",
+      "email": "Adresse e-mail",
+      "emailPlaceholder": "Entrez votre e-mail",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Créez un mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Re-saisissez votre mot de passe",
+      "termsAgree": "J'accepte les",
+      "termsLink": "Conditions d'utilisation",
+      "privacyLink": "Politique de confidentialité",
+      "registerButton": "Créer un compte",
+      "hasAccount": "Vous avez déjà un compte ?",
+      "loginLink": "Se connecter",
+      "errorPasswordMismatch": "Les mots de passe ne correspondent pas",
+      "errorWeakPassword": "Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre",
+      "errorEmailExists": "Un compte avec cet e-mail existe déjà",
+      "successRegistration": "Compte créé avec succès ! Veuillez vérifier votre e-mail pour confirmer."
+    },
+
+    "validation": {
+      "emailRequired": "L'e-mail est requis",
+      "emailInvalid": "Veuillez entrer une adresse e-mail valide",
+      "passwordRequired": "Le mot de passe est requis",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+      "nameRequired": "Le nom est requis",
+      "fieldRequired": "Ce champ est requis"
+    }
+  },
+
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bon retour, {{name}}",
+    "quickActions": "Actions rapides",
+    "recentProjects": "Projets récents",
+    "statistics": "Statistiques",
+    "newProject": "Nouveau projet",
+    "viewAll": "Voir tout",
+    "noProjects": "Aucun projet pour le moment",
+    "createFirst": "Créez votre premier projet pour commencer",
+
+    "stats": {
+      "totalProjects": "Total des projets",
+      "activeProjects": "Projets actifs",
+      "deployments": "Déploiements",
+      "storage": "Stockage utilisé"
+    },
+
+    "actions": {
+      "createApp": "Créer une nouvelle application",
+      "browseTemplates": "Parcourir les modèles",
+      "viewDocs": "Voir la documentation",
+      "contactSupport": "Contacter le support"
+    }
+  },
+
+  "editor": {
+    "title": "Éditeur d'application web",
+    "tabs": {
+      "code": "Code",
+      "preview": "Aperçu",
+      "console": "Console",
+      "settings": "Paramètres"
+    },
+
+    "toolbar": {
+      "save": "Enregistrer",
+      "undo": "Annuler",
+      "redo": "Rétablir",
+      "format": "Formater le code",
+      "run": "Exécuter",
+      "deploy": "Déployer",
+      "share": "Partager",
+      "settings": "Paramètres"
+    },
+
+    "sidebar": {
+      "files": "Fichiers",
+      "components": "Composants",
+      "assets": "Ressources",
+      "dependencies": "Dépendances"
+    },
+
+    "files": {
+      "newFile": "Nouveau fichier",
+      "newFolder": "Nouveau dossier",
+      "rename": "Renommer",
+      "delete": "Supprimer",
+      "upload": "Télécharger",
+      "download": "Télécharger"
+    },
+
+    "messages": {
+      "savingProject": "Enregistrement du projet...",
+      "projectSaved": "Projet enregistré avec succès",
+      "errorSaving": "Erreur lors de l'enregistrement du projet",
+      "deployingProject": "Déploiement du projet...",
+      "projectDeployed": "Projet déployé avec succès",
+      "errorDeploying": "Erreur lors du déploiement du projet"
+    }
+  },
+
+  "templates": {
+    "title": "Galerie de modèles",
+    "subtitle": "Choisissez un modèle pour démarrer votre projet",
+    "categories": {
+      "all": "Tous les modèles",
+      "landing": "Pages d'atterrissage",
+      "dashboard": "Tableaux de bord",
+      "ecommerce": "E-commerce",
+      "portfolio": "Portfolios",
+      "blog": "Blogs",
+      "saas": "Applications SaaS"
+    },
+
+    "filter": {
+      "search": "Rechercher des modèles...",
+      "sortBy": "Trier par",
+      "popular": "Les plus populaires",
+      "newest": "Les plus récents",
+      "name": "Nom"
+    },
+
+    "card": {
+      "preview": "Aperçu",
+      "useTemplate": "Utiliser ce modèle",
+      "details": "Voir les détails",
+      "free": "Gratuit",
+      "premium": "Premium"
+    }
+  },
+
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez votre compte et vos préférences",
+
+    "tabs": {
+      "profile": "Profil",
+      "account": "Compte",
+      "preferences": "Préférences",
+      "security": "Sécurité",
+      "notifications": "Notifications",
+      "billing": "Facturation"
+    },
+
+    "profile": {
+      "title": "Informations du profil",
+      "name": "Nom complet",
+      "email": "Adresse e-mail",
+      "bio": "Biographie",
+      "avatar": "Photo de profil",
+      "changeAvatar": "Changer la photo",
+      "updateProfile": "Mettre à jour le profil",
+      "profileUpdated": "Profil mis à jour avec succès"
+    },
+
+    "preferences": {
+      "title": "Préférences",
+      "language": "Langue",
+      "theme": "Thème",
+      "themeLight": "Clair",
+      "themeDark": "Sombre",
+      "themeAuto": "Auto (Système)",
+      "timezone": "Fuseau horaire",
+      "dateFormat": "Format de date",
+      "reducedMotion": "Réduire les mouvements",
+      "reducedMotionHelp": "Minimiser les animations et transitions pour une meilleure accessibilité"
+    },
+
+    "security": {
+      "title": "Paramètres de sécurité",
+      "changePassword": "Changer le mot de passe",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "confirmNewPassword": "Confirmer le nouveau mot de passe",
+      "updatePassword": "Mettre à jour le mot de passe",
+      "passwordUpdated": "Mot de passe mis à jour avec succès",
+      "twoFactor": "Authentification à deux facteurs",
+      "twoFactorEnable": "Activer 2FA",
+      "twoFactorDisable": "Désactiver 2FA",
+      "sessions": "Sessions actives",
+      "revokeSession": "Révoquer la session"
+    },
+
+    "notifications": {
+      "title": "Préférences de notification",
+      "emailNotifications": "Notifications par e-mail",
+      "projectUpdates": "Mises à jour de projet",
+      "deploymentStatus": "État du déploiement",
+      "securityAlerts": "Alertes de sécurité",
+      "marketing": "Marketing et mises à jour",
+      "pushNotifications": "Notifications push"
+    }
+  },
+
+  "billing": {
+    "title": "Facturation et abonnement",
+    "currentPlan": "Plan actuel",
+    "planFree": "Gratuit",
+    "planPro": "Pro",
+    "planEnterprise": "Entreprise",
+
+    "usage": {
+      "title": "Utilisation actuelle",
+      "projects": "Projets",
+      "storage": "Stockage",
+      "bandwidth": "Bande passante",
+      "deployments": "Déploiements"
+    },
+
+    "plans": {
+      "title": "Choisissez votre plan",
+      "monthly": "Mensuel",
+      "yearly": "Annuel",
+      "save": "Économisez {{percent}}%",
+      "currentPlan": "Plan actuel",
+      "upgrade": "Mettre à niveau",
+      "downgrade": "Rétrograder",
+      "selectPlan": "Sélectionner le plan"
+    },
+
+    "features": {
+      "unlimited": "Illimité",
+      "projects": "{{count}} Projets",
+      "storage": "{{size}} Stockage",
+      "bandwidth": "{{size}} Bande passante",
+      "customDomain": "Domaine personnalisé",
+      "ssl": "Certificat SSL",
+      "support": "Support {{level}}",
+      "analytics": "Analyses avancées"
+    },
+
+    "payment": {
+      "title": "Méthode de paiement",
+      "addCard": "Ajouter un moyen de paiement",
+      "updateCard": "Mettre à jour le moyen de paiement",
+      "cardEnding": "Carte se terminant par {{last4}}",
+      "expiresOn": "Expire le {{date}}"
+    }
+  },
+
+  "support": {
+    "title": "Centre de support",
+    "subtitle": "Obtenez de l'aide et trouvez des réponses",
+
+    "contact": {
+      "title": "Contacter le support",
+      "name": "Votre nom",
+      "email": "Adresse e-mail",
+      "subject": "Sujet",
+      "message": "Message",
+      "attachments": "Pièces jointes",
+      "send": "Envoyer le message",
+      "messageSent": "Votre message a été envoyé. Nous vous répondrons bientôt !"
+    },
+
+    "faq": {
+      "title": "Questions fréquemment posées",
+      "search": "Rechercher dans les FAQ..."
+    },
+
+    "docs": {
+      "title": "Documentation",
+      "gettingStarted": "Premiers pas",
+      "tutorials": "Tutoriels",
+      "apiReference": "Référence API",
+      "examples": "Exemples"
+    }
+  },
+
+  "admin": {
+    "title": "Panneau d'administration",
+    "users": "Utilisateurs",
+    "projects": "Projets",
+    "analytics": "Analyses",
+    "settings": "Paramètres système",
+
+    "usersManagement": {
+      "title": "Gestion des utilisateurs",
+      "totalUsers": "Total des utilisateurs",
+      "activeUsers": "Utilisateurs actifs",
+      "search": "Rechercher des utilisateurs...",
+      "viewUser": "Voir l'utilisateur",
+      "editUser": "Modifier l'utilisateur",
+      "deleteUser": "Supprimer l'utilisateur",
+      "suspendUser": "Suspendre l'utilisateur"
+    }
+  },
+
+  "errors": {
+    "404": {
+      "title": "Page non trouvée",
+      "message": "La page que vous recherchez n'existe pas.",
+      "action": "Aller au tableau de bord"
+    },
+
+    "500": {
+      "title": "Erreur serveur",
+      "message": "Une erreur s'est produite de notre côté. Veuillez réessayer plus tard.",
+      "action": "Recharger la page"
+    },
+
+    "403": {
+      "title": "Accès refusé",
+      "message": "Vous n'avez pas la permission d'accéder à cette ressource.",
+      "action": "Retour"
+    },
+
+    "network": {
+      "title": "Erreur réseau",
+      "message": "Impossible de se connecter au serveur. Veuillez vérifier votre connexion Internet.",
+      "action": "Réessayer"
+    }
+  },
+
+  "footer": {
+    "company": "Entreprise",
+    "about": "À propos",
+    "careers": "Carrières",
+    "blog": "Blog",
+    "contact": "Contact",
+
+    "product": "Produit",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "documentation": "Documentation",
+    "changelog": "Journal des modifications",
+
+    "legal": "Légal",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "cookies": "Politique des cookies",
+
+    "social": "Suivez-nous",
+    "copyright": "© {{year}} Devora. Tous droits réservés."
+  },
+
+  "cookies": {
+    "message": "Nous utilisons des cookies pour améliorer votre expérience. En continuant à visiter ce site, vous acceptez notre utilisation des cookies.",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "learnMore": "En savoir plus"
+  },
+
+  "accessibility": {
+    "skipToMain": "Aller au contenu principal",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu",
+    "openDialog": "Ouvrir la boîte de dialogue",
+    "closeDialog": "Fermer la boîte de dialogue",
+    "loading": "Chargement",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "info": "Information",
+    "required": "Champ obligatoire",
+    "optional": "Champ facultatif",
+    "sortAscending": "Trier par ordre croissant",
+    "sortDescending": "Trier par ordre décroissant",
+    "currentPage": "Page actuelle",
+    "pageOf": "Page {{current}} sur {{total}}"
+  }
+}

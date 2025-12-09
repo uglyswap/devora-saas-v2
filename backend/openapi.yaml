@@ -1,0 +1,579 @@
+openapi: 3.1.0
+info:
+  title: Devora API
+  description: |
+    Devora AI-powered code generation platform API
+
+    ## Features
+    - AI-powered code generation (HTML/CSS/JS and Full-Stack)
+    - Project management with version control
+    - Stripe billing integration
+    - GitHub and Vercel deployment
+    - OAuth2 authentication (Google, GitHub)
+
+    ## Authentication
+    All authenticated endpoints require a Bearer token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+
+    ## Rate Limiting
+    API v2 endpoints are rate-limited to prevent abuse:
+    - Authentication: 5 requests/minute
+    - Generation (simple): 20 requests/minute
+    - Generation (agentic): 10 requests/minute
+    - Generation (fullstack): 5 requests/minute
+
+  version: 2.0.0
+  contact:
+    name: Devora Support
+    email: support@devora.fun
+    url: https://devora.fun
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.devora.fun
+    description: Production server
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and registration
+  - name: Projects
+    description: Project management operations
+  - name: Generation
+    description: AI code generation endpoints
+  - name: Billing
+    description: Stripe subscription and billing
+  - name: Admin
+    description: Admin-only operations
+  - name: OAuth
+    description: OAuth2 authentication providers
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login or /auth/register
+
+  schemas:
+    # User schemas
+    UserCreate:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: SecurePass123
+          description: Must contain uppercase, lowercase, and digit
+        full_name:
+          type: string
+          maxLength: 100
+          example: John Doe
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: usr_1234567890
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        is_active:
+          type: boolean
+        is_admin:
+          type: boolean
+        subscription_status:
+          type: string
+          enum: [inactive, active, canceled, past_due]
+        current_period_end:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    Token:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        token_type:
+          type: string
+          example: bearer
+
+    # Project schemas
+    ProjectFile:
+      type: object
+      required:
+        - name
+        - content
+        - language
+      properties:
+        name:
+          type: string
+          example: app/page.tsx
+        content:
+          type: string
+          example: export default function Home() { return <div>Hello</div> }
+        language:
+          type: string
+          example: typescript
+
+    ConversationMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+
+    ProjectCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          example: My SaaS App
+        description:
+          type: string
+          maxLength: 1000
+          example: A full-stack SaaS application
+        project_type:
+          type: string
+          enum: [saas, ecommerce, blog, dashboard, api, custom]
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+        conversation_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+
+    ProjectResponse:
+      allOf:
+        - $ref: '#/components/schemas/ProjectCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+            github_repo_url:
+              type: string
+              format: uri
+            vercel_url:
+              type: string
+              format: uri
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    # Generation schemas
+    AgenticRequest:
+      type: object
+      required:
+        - message
+        - model
+        - api_key
+      properties:
+        message:
+          type: string
+          maxLength: 10000
+          example: Create a landing page with a contact form
+        model:
+          type: string
+          example: gpt-4o
+        api_key:
+          type: string
+          example: sk-...
+        current_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+        conversation_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+        project_id:
+          type: string
+        user_id:
+          type: string
+
+    FullStackRequest:
+      allOf:
+        - $ref: '#/components/schemas/AgenticRequest'
+        - type: object
+          properties:
+            project_type:
+              type: string
+              enum: [saas, ecommerce, blog, dashboard, api]
+
+    GenerationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectFile'
+        message:
+          type: string
+        iterations:
+          type: integer
+        context_compressed:
+          type: boolean
+        memory_enabled:
+          type: boolean
+        generation_mode:
+          type: string
+          enum: [simple, agentic, fullstack]
+        stack:
+          type: object
+          properties:
+            frontend:
+              type: array
+              items:
+                type: string
+            backend:
+              type: array
+              items:
+                type: string
+            database:
+              type: array
+              items:
+                type: string
+
+    # Billing schemas
+    SubscriptionPlan:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Pro
+        price:
+          type: number
+          format: float
+          example: 9.90
+        currency:
+          type: string
+          example: eur
+        interval:
+          type: string
+          example: month
+        features:
+          type: array
+          items:
+            type: string
+
+    CheckoutSession:
+      type: object
+      properties:
+        session_id:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [paid, open, void, uncollectible]
+        invoice_pdf:
+          type: string
+          format: uri
+        created:
+          type: integer
+          format: int64
+
+    # Error schema
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        detail:
+          type: string
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+paths:
+  # Authentication endpoints
+  /v2/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Email already exists or invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v2/auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Project endpoints
+  /v2/projects:
+    get:
+      tags: [Projects]
+      summary: List user projects
+      operationId: listProjects
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags: [Projects]
+      summary: Create new project
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v2/projects/{project_id}:
+    get:
+      tags: [Projects]
+      summary: Get project details
+      operationId: getProject
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # Generation endpoints
+  /v2/generate/agentic:
+    post:
+      tags: [Generation]
+      summary: Generate code using agentic system (HTML/CSS/JS)
+      operationId: generateAgentic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgenticRequest'
+      responses:
+        '200':
+          description: Code generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /v2/generate/fullstack:
+    post:
+      tags: [Generation]
+      summary: Generate full-stack Next.js project
+      operationId: generateFullStack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FullStackRequest'
+      responses:
+        '200':
+          description: Full-stack project generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # Billing endpoints
+  /v2/billing/plans:
+    get:
+      tags: [Billing]
+      summary: Get subscription plans
+      operationId: getPlans
+      security: []
+      responses:
+        '200':
+          description: Available subscription plans
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPlan'
+
+  /v2/billing/create-checkout-session:
+    post:
+      tags: [Billing]
+      summary: Create Stripe checkout session
+      operationId: createCheckoutSession
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSession'
+        '400':
+          description: Already subscribed
+        '503':
+          description: Stripe not configured
+
+  /v2/billing/invoices:
+    get:
+      tags: [Billing]
+      summary: List user invoices
+      operationId: listInvoices
+      responses:
+        '200':
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
